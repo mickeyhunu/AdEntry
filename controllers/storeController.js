@@ -13,8 +13,8 @@ export async function renderHome(req, res, next) {
     html += "<h1>가게 목록</h1><ul>";
     stores.forEach(s => {
       html += `<li>${s.storeNo} - ${s.storeName} 
-                 [<a href="/store/${s.storeNo}">엔트리 보러가기</a>] 
-                 [<a href="/room/${s.storeNo}">룸현황 보러가기</a>]
+                 [<a href="/entry/store/${s.storeNo}">엔트리 보러가기</a>] 
+                 [<a href="/entry/room/${s.storeNo}">룸현황 보러가기</a>]
               </li>`;
     });
     html += "</ul></body></html>";

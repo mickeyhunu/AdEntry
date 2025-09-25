@@ -14,7 +14,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/", storeRoutes);
+app.use("/entry", storeRoutes);
 
 app.get("/health", (_, res) => res.send("ok"));
 

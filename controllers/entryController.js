@@ -34,7 +34,7 @@ export async function renderStoreEntries(req, res, next) {
     let html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
     html += `<title>${store.storeName} 엔트리</title></head><body>`;
     html += `<h1>${store.storeName} 엔트리</h1>`;
-    html += `<a href="/entry">← 가게 목록으로</a><br/><br/>`;
+    html += `<a href="/entry/entry">← 가게 목록으로</a><br/><br/>`;
 
     html += `<div>총 출근인원: <strong>${totalCount}</strong>명</div><br/>`;
 

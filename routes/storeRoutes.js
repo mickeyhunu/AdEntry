@@ -5,7 +5,7 @@ import { renderRoomInfo } from "../controllers/roomController.js";
 
 const router = Router();
 
-router.get("/", renderHome);
+router.get("/entry", renderHome);
 router.get("/store/:storeNo", renderStoreEntries);
 router.get("/room/:storeNo", renderRoomInfo);
 

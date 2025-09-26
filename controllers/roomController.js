@@ -87,7 +87,7 @@ export async function renderRoomInfo(req, res, next) {
     let html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
     html += `<title>${escapeHtml(room.storeName)} 룸현황</title></head><body>`;
     html += `<h1>${escapeHtml(room.storeName)} 룸현황</h1>`;
-    html += `<a href="/entry">← 가게 목록으로</a><br/><br/>`;
+    html += `<a href="/entry/entry">← 가게 목록으로</a><br/><br/>`;
 
     html += `<div>룸 정보: ${escapeHtml(roomInfoDisplay)}</div>`;
     html += `<div>웨이팅 정보: ${escapeHtml(room.waitInfo ?? "N/A")}</div>`;

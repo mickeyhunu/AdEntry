@@ -1,3 +1,4 @@
+// app.js
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -14,24 +15,19 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 라우트
 app.use("/entry", storeRoutes);
+
+app.get("/", (_, res) => {
+  res.redirect("/entry");
+});
 
 app.get("/health", (_, res) => res.send("ok"));
 
-/* 404 */
-app.use((req, res) => {
-  res.status(404).render("404", { message: "페이지를 찾을 수 없습니다." });
-});
-
-/* 에러 핸들러 - 반드시 마지막 */
+// (선택) 최소 에러 핸들러 — 페이지 렌더 없음
 app.use((err, req, res, next) => {
   console.error(err);
-  // 만약 500.ejs가 또 실패하면 텍스트로라도 응답
-  try {
-    res.status(500).render("500", { message: err.message });
-  } catch (e) {
-    res.status(500).type("text").send(`Server error: ${err.message}`);
-  }
+  res.status(500).json({ ok: false, message: err.message || "Internal Server Error" });
 });
 
 const PORT = process.env.PORT || 5000;

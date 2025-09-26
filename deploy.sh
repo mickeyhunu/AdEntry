@@ -1,34 +1,26 @@
-# === AdEntry 업데이트 & 재배포 ===
-APP_DIR=/apps/AdEntry
-APP_NAME=adentry
+# ~/apps/AdEntry/deploy.sh
+set -euo pipefail
+BRANCH="${1:-main}"
 
-cd "$APP_DIR" || { echo "❌ $APP_DIR 없음"; exit 1; }
-
-# 1) 원격 갱신
+echo ">>> Git update"
+cd ~/apps/AdEntry
 git fetch --all --prune
-
-# 2) 현재 브랜치 기준 fast-forward 업데이트 (로컬 변경 안 덮어씀)
-BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-[ -z "$BRANCH" ] && BRANCH="$(git symbolic-ref --short refs/remotes/origin/HEAD | cut -d/ -f2)"
 git checkout "$BRANCH"
-git pull --ff-only origin "$BRANCH"
+git pull --ff-only origin "$BRANCH" || { echo "git pull 실패 → git reset --hard origin/$BRANCH"; git reset --hard "origin/$BRANCH"; }
 
-# 3) 의존성 설치
 npm ci || npm install
-
-# 4) build 스크립트가 있으면 실행(없으면 건너뜀)
 grep -q '"build"' package.json && npm run build || true
 
-# 5) PM2 무중단 재시작(처음이면 start)
-pm2 describe "$APP_NAME" >/dev/null 2>&1 \
-  && pm2 reload "$APP_NAME" --update-env \
-  || pm2 start app.js --name "$APP_NAME" --update-env
-
+pm2 reload adentry
+|| pm2 start app.js --name adentry --update-env
 pm2 save
 
-# 6) 상태/로그(선택)
-pm2 status "$APP_NAME"
-pm2 logs "$APP_NAME" --lines 50 --timestamp
+
+echo "DONE"
+
+# ssh -i .\adPlusKey.pem ubuntu@13.125.253.91 --- cmd에서 우분투 접속
+
+# sudo nano /etc/nginx/sites-available/adplus --- cmd에서 nginx 우회수정
 
 
 # chmod +x ~/apps/AdEntry/deploy.sh --- sh준비

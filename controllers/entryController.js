@@ -71,7 +71,7 @@ function buildCompositeSvg(lines, options = {}) {
       const fontWeight = line.fontWeight ?? "normal";
       const content = escapeXml(line.text ?? "");
 
-    if (index === 0) {
+      if (index === 0) {
         textY += line.fontSize;
         return `<tspan x="${padding}" y="${textY}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
       }
@@ -116,7 +116,7 @@ async function fetchStoreEntries(storeNo) {
     [storeNo]
   );
 
-    const ranked = entries.map((entry) => ({
+  const ranked = entries.map((entry) => ({
     ...entry,
     total: (entry.mentionCount * 5 || 0) + (entry.insertCount || 0),
   }));
@@ -142,40 +142,28 @@ function buildStoreEntryLines(store, entries, top5) {
   if (entries.length) {
     lines.push({ text: "엔트리 목록", fontSize: 30, fontWeight: "700", gapBefore: 28 });
 
-    const groupedEntries = [];
-    let buffer = [];
-    entries.forEach((entry) => {
-      buffer.push(entry.workerName);
-      if (buffer.length === 6) {
-        groupedEntries.push(buffer.join("  |  "));
-        buffer = [];
-      }
-    });
-    if (buffer.length) groupedEntries.push(buffer.join("  |  "));
-
-    let isFirstGroup = true;
-    groupedEntries.forEach((line) => {
+    entries.forEach((entry, index) => {
+      const name = entry.workerName ?? "";
       lines.push({
-        text: line,
+        text: name,
         fontSize: 24,
         lineHeight: 34,
-        gapBefore: isFirstGroup ? 12 : 8,
+        gapBefore: index === 0 ? 12 : 8,
       });
-      isFirstGroup = false;
     });
 
     if (top5.length) {
       lines.push({ text: "추천 아가씨 TOP 5", fontSize: 30, fontWeight: "700", gapBefore: 32 });
 
-      let isFirstRank = true;
       top5.forEach((entry, index) => {
+        const name = entry.workerName ?? "";
+        const total = entry.total ?? 0;
         lines.push({
-          text: `${index + 1}. ${entry.workerName}  |  합계 ${entry.total}`,
+          text: `${index + 1}. ${name} - 합계 ${total}`,
           fontSize: 24,
           lineHeight: 34,
-          gapBefore: isFirstRank ? 12 : 8,
+          gapBefore: index === 0 ? 12 : 8,
         });
-        isFirstRank = false;
       });
     }
   } else {
@@ -211,19 +199,19 @@ export async function renderStoreEntries(req, res, next) {
     const totalCount = entries.length;
 
     const entryItems = entries
-      .map((entry) => {
-        const name = escapeHtml(entry.workerName);
-        const mention = entry.mentionCount ?? 0;
-        const insert = entry.insertCount ?? 0;
-        return `<li><span class="name">${name}</span><span class="counts">멘션 ${mention} · 입력 ${insert}</span></li>`;
+      .map((entry, index) => {
+        const name = escapeHtml(entry.workerName ?? "");
+        const needsBreak = index > 0 && index % 10 === 0;
+        const classAttr = needsBreak ? " class=\"break\"" : "";
+        return `<li${classAttr}>${name}</li>`;
       })
       .join("");
 
     const topRankings = top5
       .map((entry, index) => {
-        const name = escapeHtml(entry.workerName);
+        const name = escapeHtml(entry.workerName ?? "");
         const total = entry.total ?? 0;
-        return `<li><span class="rank">${index + 1}</span><span class="name">${name}</span><span class="score">합계 ${total}</span></li>`;
+        return `<li><span class="rank">${index + 1}.</span><span class="name"> ${name}</span><span class="score"> - 합계 ${total}</span></li>`;
       })
       .join("");
 
@@ -233,18 +221,30 @@ export async function renderStoreEntries(req, res, next) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(store.storeName)} 엔트리</title>
+ 
   </head>
   <body>
     <div class="container">
-      <h1>${escapeHtml(store.storeName)} 엔트리</h1>
+      <header class="page-header">
+        <h1>${escapeHtml(store.storeName)} 엔트리</h1>
+        <a class="back-link" href="/entry">← 가게 목록으로</a>
+      </header>
       <p class="summary">총 출근인원: <strong>${totalCount}</strong>명</p>
       <section>
         <h2>엔트리 목록</h2>
-        ${entries.length ? `<div class="entry-list">${entryItems} </div>` : '<div class="empty">엔트리가 없습니다.</div>'}
+        ${
+          entries.length
+            ? `<li class="entry-list">${entryItems}</li>`
+            : `<p class="empty">엔트리가 없습니다.</p>`
+        }
       </section>
       <section>
         <h2>추천 아가씨 TOP 5</h2>
-        ${top5.length ? `<div class="top-list">${topRankings}</div>` : '<div class="empty">추천 데이터가 없습니다.</div>'}
+        ${
+          top5.length
+            ? `<li class="top-list">${topRankings}</li>`
+            : `<p class="empty">추천 데이터가 없습니다.</p>`
+        }
       </section>
     </div>
   </body>

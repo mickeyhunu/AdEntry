@@ -126,6 +126,14 @@ async function fetchStoreEntries(storeNo) {
   return { store, entries, top5 };
 }
 
+function chunkArray(items, size) {
+  const chunks = [];
+  for (let start = 0; start < items.length; start += size) {
+    chunks.push(items.slice(start, start + size));
+  }
+  return chunks;
+}
+
 function buildStoreEntryLines(store, entries, top5) {
   const totalCount = entries.length;
 
@@ -142,10 +150,14 @@ function buildStoreEntryLines(store, entries, top5) {
   if (entries.length) {
     lines.push({ text: "엔트리 목록", fontSize: 30, fontWeight: "700", gapBefore: 28 });
 
-    entries.forEach((entry, index) => {
-      const name = entry.workerName ?? "";
+    const entryRows = chunkArray(entries, 10);
+    entryRows.forEach((row, index) => {
+      const chunkText = row
+        .map((entry) => entry.workerName ?? "")
+        .join(" ");
+
       lines.push({
-        text: name,
+        text: chunkText,
         fontSize: 24,
         lineHeight: 34,
         gapBefore: index === 0 ? 12 : 8,
@@ -198,14 +210,15 @@ export async function renderStoreEntries(req, res, next) {
     const { store, entries, top5 } = data;
     const totalCount = entries.length;
 
-    const entryItems = entries
-      .map((entry, index) => {
-        const name = escapeHtml(entry.workerName ?? "");
-        const needsBreak = index > 0 && index % 10 === 0;
-        const classAttr = needsBreak ? " class=\"break\"" : "";
-        return `<li${classAttr}>${name}</li>`;
+    const entryRows = chunkArray(entries, 10);
+    const entryItems = entryRows
+      .map((row) => {
+        const names = row
+          .map((entry) => `<span class="entry-name">${escapeHtml(entry.workerName ?? "")}</span>`)
+          .join(" ");
+        return `<li class="entry-row">${names}</li>`;
       })
-      .join("");
+      .join("  ");
 
     const topRankings = top5
       .map((entry, index) => {
@@ -227,7 +240,7 @@ export async function renderStoreEntries(req, res, next) {
     <div class="container">
       <header class="page-header">
         <h1>${escapeHtml(store.storeName)} 엔트리</h1>
-        <a class="back-link" href="/entry">← 가게 목록으로</a>
+        <a class="back-link" href="/entry/home">← 가게 목록으로</a>
       </header>
       <p class="summary">총 출근인원: <strong>${totalCount}</strong>명</p>
       <section>

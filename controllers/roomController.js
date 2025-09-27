@@ -9,6 +9,15 @@ function escapeHtml(str = "") {
     .replaceAll("'", "&#39;");
 }
 
+function escapeXml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // 중첩 객체/배열을 펼쳐서 "키: 값" 줄 단위로 만들어줌
 function flattenDetail(value, prefix = "", lines = [], level = 0) {
   const pad = "  ".repeat(level); // 들여쓰기(원하면 제거 가능)
@@ -49,7 +58,7 @@ function safeParseJSON(raw) {
   if (typeof raw === "object" && !Buffer.isBuffer(raw)) {
     return { obj: raw, text: null };
   }
-  let text = Buffer.isBuffer(raw) ? raw.toString("utf8") : String(raw);
+  const text = Buffer.isBuffer(raw) ? raw.toString("utf8") : String(raw);
 
   try {
     return { obj: JSON.parse(text), text: null };
@@ -66,49 +75,221 @@ function safeParseJSON(raw) {
   return { obj: null, text };
 }
 
-export async function renderRoomInfo(req, res, next) {
-  try {
-    const { storeNo } = req.params;
+function extractDetailLines(detailObj, detailRaw) {
+  if (detailObj) {
+    return flattenDetail(detailObj);
+  }
 
-    const [[room]] = await pool.query(
-      `SELECT r.storeNo, s.storeName, r.roomInfo, r.waitInfo, r.roomDetail, r.updatedAt
+  if (typeof detailRaw === "string") {
+    const cleaned = detailRaw.replace(/[{}\"]/g, "");
+    return cleaned
+      .split(/\r?\n|\r/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function buildCompositeSvg(lines, options = {}) {
+  const {
+    defaultFontSize = 24,
+    defaultLineHeight = defaultFontSize * 1.4,
+    padding = 24,
+    background = "#ffffff",
+    textColor = "#111111",
+    borderRadius = 24,
+    borderColor = "#dddddd",
+    borderWidth = 1,
+    minWidth = 480,
+  } = options;
+
+  const normalizedLines = (Array.isArray(lines) ? lines : [lines]).map((line) =>
+    typeof line === "string" ? { text: line } : { ...line }
+  );
+
+  if (!normalizedLines.length) {
+    normalizedLines.push({ text: "" });
+  }
+
+  let estimatedWidth = minWidth;
+  normalizedLines.forEach((line) => {
+    const fontSize = line.fontSize ?? defaultFontSize;
+    const contentWidth = Math.ceil((line.text?.length || 0) * (fontSize * 0.65));
+    estimatedWidth = Math.max(estimatedWidth, padding * 2 + contentWidth);
+  });
+
+    let totalHeight = padding;
+  const metrics = normalizedLines.map((line, index) => {
+    const fontSize = line.fontSize ?? defaultFontSize;
+    const lineHeight = line.lineHeight ?? defaultLineHeight;
+    const gapBefore = index === 0 ? 0 : line.gapBefore ?? 0;
+    const dy = index === 0 ? 0 : gapBefore + lineHeight;
+
+    totalHeight += index === 0 ? fontSize : dy;
+
+    return {
+      ...line,
+      fontSize,
+      lineHeight,
+      gapBefore,
+      dy,
+    };
+  });
+  totalHeight += padding;
+
+  let textY = padding;
+  const spans = metrics
+    .map((line, index) => {
+      const fontWeight = line.fontWeight ?? "normal";
+      const content = escapeXml(line.text ?? "");
+
+      if (index === 0) {
+        textY += line.fontSize;
+        return `<tspan x="${padding}" y="${textY}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
+      }
+
+      return `<tspan x="${padding}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
+    })
+    .join("");
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${estimatedWidth}" height="${totalHeight}" role="img">
+  <defs>
+    <style>
+      text { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; fill: ${textColor}; }
+    </style>
+  </defs>
+  <rect x="0" y="0" rx="${borderRadius}" ry="${borderRadius}" width="${estimatedWidth}" height="${totalHeight}" fill="${background}" stroke="${borderColor}" stroke-width="${borderWidth}" />
+  <text x="${padding}" y="${padding}" font-size="${defaultFontSize}" xml:space="preserve">
+    ${spans}
+  </text>
+</svg>`;
+
+  return { svg, width: estimatedWidth, height: totalHeight };
+}
+
+const ROOM_IMAGE_OPTIONS = {
+  defaultFontSize: 24,
+  defaultLineHeight: 34,
+  padding: 40,
+  background: "#ffffff",
+  borderColor: "#d0d0d0",
+  minWidth: 560,
+};
+
+async function fetchRoomStatus(storeNo) {
+  const [[room]] = await pool.query(
+    `SELECT r.storeNo, s.storeName, r.roomInfo, r.waitInfo, r.roomDetail, r.updatedAt
          FROM INFO_ROOM r
          JOIN INFO_STORE s ON s.storeNo = r.storeNo
         WHERE r.storeNo=?`,
       [storeNo]
-    );
+  );
+
+  if (!room) {
+    return null;
+  }
+
+  const roomInfoDisplay =
+    Number(room.roomInfo) === 999 ? "여유" : (room.roomInfo ?? "N/A");
+  const waitInfoDisplay = room.waitInfo ?? "N/A";
+  const { obj: detailObj, text: detailRaw } = safeParseJSON(room.roomDetail);
+
+  return {
+    storeNo: room.storeNo,
+    storeName: room.storeName,
+    roomInfo: roomInfoDisplay,
+    waitInfo: waitInfoDisplay,
+    detailObj,
+    detailRaw,
+    updatedAt: room.updatedAt,
+    updatedAtDisplay: new Date(room.updatedAt).toLocaleString("ko-KR"),
+  };
+}
+
+export async function renderRoomInfo(req, res, next) {
+  try {
+    const { storeNo } = req.params;
+
+    const room = await fetchRoomStatus(storeNo);
     if (!room) return res.status(404).send("룸현황 정보가 없습니다.");
 
-    const roomInfoDisplay =
-      Number(room.roomInfo) === 999 ? "여유" : (room.roomInfo ?? "N/A");
-
-    const { obj: detailObj, text: detailRaw } = safeParseJSON(room.roomDetail);
+    const detailLines = extractDetailLines(room.detailObj, room.detailRaw);
 
     let html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
     html += `<title>${escapeHtml(room.storeName)} 룸현황</title></head><body>`;
     html += `<h1>${escapeHtml(room.storeName)} 룸현황</h1>`;
-    html += `<a href="/entry/entry">← 가게 목록으로</a><br/><br/>`;
+    html += `<a href="/entry/home">← 가게 목록으로</a><br/><br/>`;
 
-    html += `<div>룸 정보: ${escapeHtml(roomInfoDisplay)}</div>`;
-    html += `<div>웨이팅 정보: ${escapeHtml(room.waitInfo ?? "N/A")}</div>`;
+    html += `<div>룸 정보: ${escapeHtml(room.roomInfo)}</div>`;
+    html += `<div>웨이팅 정보: ${escapeHtml(room.waitInfo)}</div>`;
 
     html += "<h3>상세 정보</h3>";
-    if (detailObj) {
-        const lines = flattenDetail(detailObj);
-        // 중괄호/따옴표 없이, 줄바꿈만
-        html += `<pre>${escapeHtml(lines.join("\n"))}</pre>`;
-    } else if (detailRaw) {
-        // 파싱 실패한 원본 문자열에서 { } " 제거
-        const cleaned = detailRaw.replace(/[{}"]/g, "");
-        html += `<pre>${escapeHtml(cleaned)}</pre>`;
+    if (detailLines.length) {
+      html += `<pre>${escapeHtml(detailLines.join("\n"))}</pre>`;
     } else {
-        html += "<p>상세 정보 없음</p>";
+      html += "<p>상세 정보 없음</p>";
     }
 
-    html += `<div>업데이트: ${new Date(room.updatedAt).toLocaleString("ko-KR")}</div>`;
+    html += `<div>업데이트: ${escapeHtml(room.updatedAtDisplay)}</div>`;
     html += "</body></html>";
 
     res.send(html);
+  } catch (err) {
+    next(err);
+  }
+}
+
+function buildRoomImageLines(room) {
+  const detailLines = extractDetailLines(room.detailObj, room.detailRaw);
+
+  const lines = [
+    { text: `${room.storeName} 룸현황`, fontSize: 44, fontWeight: "700" },
+    { text: `룸 정보: ${room.roomInfo}`, fontSize: 28, fontWeight: "600", gapBefore: 20 },
+    { text: `웨이팅 정보: ${room.waitInfo}`, fontSize: 24, gapBefore: 12 },
+  ];
+
+  if (detailLines.length) {
+    lines.push({ text: "상세 정보", fontSize: 30, fontWeight: "700", gapBefore: 28 });
+    detailLines.forEach((line, index) => {
+      lines.push({
+        text: line,
+        fontSize: 22,
+        lineHeight: 32,
+        gapBefore: index === 0 ? 12 : 8,
+      });
+    });
+  } else {
+    lines.push({
+      text: "상세 정보 없음",
+      fontSize: 24,
+      lineHeight: 32,
+      gapBefore: 28,
+    });
+  }
+
+  lines.push({
+    text: `업데이트: ${room.updatedAtDisplay}`,
+    fontSize: 20,
+    gapBefore: 24,
+  });
+
+  return lines;
+}
+
+export async function renderRoomImage(req, res, next) {
+  try {
+    const { storeNo } = req.params;
+
+    const room = await fetchRoomStatus(storeNo);
+    if (!room) return res.status(404).send("룸현황 정보가 없습니다.");
+
+    const lines = buildRoomImageLines(room);
+    const { svg } = buildCompositeSvg(lines, ROOM_IMAGE_OPTIONS);
+
+    res.set("Cache-Control", "no-store");
+    res.type("image/svg+xml").send(svg);
   } catch (err) {
     next(err);
   }

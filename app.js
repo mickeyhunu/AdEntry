@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/entry", storeRoutes);
 
 app.get("/", (_, res) => {
-  res.redirect("/entry");
+  res.redirect("/home");
 });
 
 app.get("/health", (_, res) => res.send("ok"));

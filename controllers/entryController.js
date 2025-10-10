@@ -154,6 +154,19 @@ function buildCompositeSvg(lines, options = {}) {
   return { svg, width: estimatedWidth, height: totalHeight };
 }
 
+function buildTodaySvg(text) {
+  const width = 800;
+  const height = 400;
+  const safeText = escapeXml(text);
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" role="img" aria-labelledby="title">
+  <title>오늘 날짜</title>
+  <rect width="100%" height="100%" fill="#ffffff" />
+  <text x="50%" y="50%" font-family="'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif" font-size="96" font-weight="700" fill="#111111" text-anchor="middle" dominant-baseline="middle">${safeText}</text>
+</svg>`;
+}
+
 async function fetchStoreEntries(storeNo) {
   const [[store]] = await pool.query(
     `SELECT storeNo, storeName
@@ -353,4 +366,17 @@ export async function renderStoreEntryImage(req, res, next) {
   } catch (err) {
     next(err);
   }
+}
+
+export function renderTodayImage(_, res) {
+  const now = new Date();
+  const todayText = new Intl.DateTimeFormat("ko-KR", {
+    month: "long",
+    day: "numeric",
+  }).format(now);
+
+  const svg = buildTodaySvg(todayText);
+
+  res.set("Cache-Control", "no-store");
+  res.type("image/svg+xml").send(svg);
 }

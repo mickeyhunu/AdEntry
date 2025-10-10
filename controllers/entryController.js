@@ -29,7 +29,23 @@ function buildCompositeSvg(lines, options = {}) {
     borderColor = "#dddddd",
     borderWidth = 1,
     minWidth = 480,
+    backgroundType = "plain",
+    notepadMarginOffset = 68,
+    notepadTextIndent = 16,
+    notepadLineSpacing = defaultLineHeight,
+    notepadLineColor = "#e2e7ff",
+    notepadMarginColor = "#f16b6f",
+    notepadMarginWidth = 2,
+    notepadHoleRadius = 6,
+    notepadHoleSpacing = 110,
+    notepadHoleOffsetX = padding / 2,
   } = options;
+
+  const isNotepad = backgroundType === "notepad";
+  const textStartX = isNotepad
+    ? padding + notepadMarginOffset + notepadTextIndent
+    : padding;
+  const rightPadding = padding;
 
   const normalizedLines = (Array.isArray(lines) ? lines : [lines]).map((line) =>
     typeof line === "string" ? { text: line } : { ...line }
@@ -39,11 +55,14 @@ function buildCompositeSvg(lines, options = {}) {
     normalizedLines.push({ text: "" });
   }
 
-  let estimatedWidth = minWidth;
+  let estimatedWidth = Math.max(minWidth, textStartX + rightPadding);
   normalizedLines.forEach((line) => {
     const fontSize = line.fontSize ?? defaultFontSize;
     const contentWidth = Math.ceil((line.text?.length || 0) * (fontSize * 0.65));
-    estimatedWidth = Math.max(estimatedWidth, padding * 2 + contentWidth);
+    estimatedWidth = Math.max(
+      estimatedWidth,
+      textStartX + contentWidth + rightPadding
+    );
   });
 
   let totalHeight = padding;
@@ -73,12 +92,50 @@ function buildCompositeSvg(lines, options = {}) {
 
       if (index === 0) {
         textY += line.fontSize;
-        return `<tspan x="${padding}" y="${textY}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
+        return `<tspan x="${textStartX}" y="${textY}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
       }
 
-      return `<tspan x="${padding}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
+      return `<tspan x="${textStartX}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
     })
     .join("");
+
+  const baseBackground = `<rect x="0" y="0" rx="${borderRadius}" ry="${borderRadius}" width="${estimatedWidth}" height="${totalHeight}" fill="${background}" stroke="${borderColor}" stroke-width="${borderWidth}" />`;
+
+  let decorativeLayers = "";
+
+  if (isNotepad) {
+    const horizontalLines = [];
+    const startY = padding + defaultLineHeight;
+    const maxY = totalHeight - padding;
+
+    for (let y = startY; y <= maxY; y += notepadLineSpacing) {
+      horizontalLines.push(
+        `<line x1="${padding}" y1="${y}" x2="${estimatedWidth - padding}" y2="${y}" stroke="${notepadLineColor}" stroke-width="1" />`
+      );
+    }
+
+    const holeElements = [];
+    const holeStartY = padding + notepadHoleRadius + 4;
+    for (let y = holeStartY; y < totalHeight - padding; y += notepadHoleSpacing) {
+      holeElements.push(
+        `<circle cx="${notepadHoleOffsetX}" cy="${y}" r="${notepadHoleRadius}" fill="#ffffff" stroke="#d0d0d0" stroke-width="1" />`
+      );
+    }
+
+    const marginX = padding + notepadMarginOffset;
+    const marginLayer =
+      notepadMarginWidth > 0
+        ? `<line x1="${marginX}" y1="${padding}" x2="${marginX}" y2="${totalHeight - padding}" stroke="${notepadMarginColor}" stroke-width="${notepadMarginWidth}" />`
+        : "";
+
+    decorativeLayers = [
+      ...horizontalLines,
+      marginLayer,
+      ...holeElements,
+    ]
+      .filter(Boolean)
+      .join("\n    ");
+  }
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${estimatedWidth}" height="${totalHeight}" role="img">
@@ -87,8 +144,9 @@ function buildCompositeSvg(lines, options = {}) {
       text { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; fill: ${textColor}; }
     </style>
   </defs>
-  <rect x="0" y="0" rx="${borderRadius}" ry="${borderRadius}" width="${estimatedWidth}" height="${totalHeight}" fill="${background}" stroke="${borderColor}" stroke-width="${borderWidth}" />
-  <text x="${padding}" y="${padding}" font-size="${defaultFontSize}" xml:space="preserve">
+  ${baseBackground}
+  ${decorativeLayers}
+  <text x="${textStartX}" y="${padding}" font-size="${defaultFontSize}" xml:space="preserve">
     ${spans}
   </text>
 </svg>`;
@@ -192,11 +250,22 @@ function buildStoreEntryLines(store, entries, top5) {
 
 const STORE_IMAGE_OPTIONS = {
   defaultFontSize: 24,
-  defaultLineHeight: 34,
-  padding: 40,
-  background: "#ffffff",
-  borderColor: "#d0d0d0",
-  minWidth: 560,
+  defaultLineHeight: 36,
+  padding: 48,
+  backgroundType: "notepad",
+  background: "#fffdf5",
+  borderColor: "#d7cbc1",
+  borderRadius: 28,
+  minWidth: 600,
+  notepadMarginOffset: 70,
+  notepadTextIndent: 20,
+  notepadLineSpacing: 38,
+  notepadLineColor: "#e2e9ff",
+  notepadMarginColor: "#ff7b7d",
+  notepadMarginWidth: 0,
+  notepadHoleRadius: 7,
+  notepadHoleSpacing: 120,
+  notepadHoleOffsetX: 28,
 };
 
 /** 가게별 엔트리 목록 */

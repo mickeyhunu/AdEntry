@@ -114,9 +114,6 @@ function buildCompositeSvg(lines, options = {}) {
       );
     }
 
-    const marginX = padding + notepadMarginOffset;
-    const marginLine = `<line x1="${marginX}" y1="${padding}" x2="${marginX}" y2="${totalHeight - padding}" stroke="${notepadMarginColor}" stroke-width="${notepadMarginWidth}" />`;
-
     const holeElements = [];
     const holeStartY = padding + notepadHoleRadius + 4;
     for (let y = holeStartY; y < totalHeight - padding; y += notepadHoleSpacing) {
@@ -125,11 +122,19 @@ function buildCompositeSvg(lines, options = {}) {
       );
     }
 
+    const marginX = padding + notepadMarginOffset;
+    const marginLayer =
+      notepadMarginWidth > 0
+        ? `<line x1="${marginX}" y1="${padding}" x2="${marginX}" y2="${totalHeight - padding}" stroke="${notepadMarginColor}" stroke-width="${notepadMarginWidth}" />`
+        : "";
+
     decorativeLayers = [
       ...horizontalLines,
-      marginLine,
+      marginLayer,
       ...holeElements,
-    ].join("\n    ");
+    ]
+      .filter(Boolean)
+      .join("\n    ");
   }
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
@@ -257,7 +262,7 @@ const STORE_IMAGE_OPTIONS = {
   notepadLineSpacing: 38,
   notepadLineColor: "#e2e9ff",
   notepadMarginColor: "#ff7b7d",
-  notepadMarginWidth: 2,
+  notepadMarginWidth: 0,
   notepadHoleRadius: 7,
   notepadHoleSpacing: 120,
   notepadHoleOffsetX: 28,

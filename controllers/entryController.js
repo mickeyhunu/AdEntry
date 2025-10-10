@@ -373,6 +373,7 @@ export function renderTodayImage(_, res) {
   const todayText = new Intl.DateTimeFormat("ko-KR", {
     month: "long",
     day: "numeric",
+    timeZone: "Asia/Seoul",
   }).format(now);
 
   const svg = buildTodaySvg(todayText);

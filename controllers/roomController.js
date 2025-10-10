@@ -204,7 +204,9 @@ async function fetchRoomStatus(storeNo) {
     detailObj,
     detailRaw,
     updatedAt: room.updatedAt,
-    updatedAtDisplay: new Date(room.updatedAt).toLocaleString("ko-KR"),
+    updatedAtDisplay: new Date(room.updatedAt).toLocaleString("ko-KR", {
+      timeZone: "Asia/Seoul",
+    }),
   };
 }
 

@@ -1,4 +1,5 @@
 import { pool } from "../config/db.js";
+import { buildCompositeSvg } from "../utils/svgBuilder.js";
 
 function escapeHtml(str = "") {
   return String(str)
@@ -7,15 +8,6 @@ function escapeHtml(str = "") {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
-}
-
-function escapeXml(value = "") {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 // 중첩 객체/배열을 펼쳐서 "키: 값" 줄 단위로 만들어줌
@@ -91,91 +83,24 @@ function extractDetailLines(detailObj, detailRaw) {
   return [];
 }
 
-function buildCompositeSvg(lines, options = {}) {
-  const {
-    defaultFontSize = 24,
-    defaultLineHeight = defaultFontSize * 1.4,
-    padding = 24,
-    background = "#ffffff",
-    textColor = "#111111",
-    borderRadius = 24,
-    borderColor = "#dddddd",
-    borderWidth = 1,
-    minWidth = 480,
-  } = options;
-
-  const normalizedLines = (Array.isArray(lines) ? lines : [lines]).map((line) =>
-    typeof line === "string" ? { text: line } : { ...line }
-  );
-
-  if (!normalizedLines.length) {
-    normalizedLines.push({ text: "" });
-  }
-
-  let estimatedWidth = minWidth;
-  normalizedLines.forEach((line) => {
-    const fontSize = line.fontSize ?? defaultFontSize;
-    const contentWidth = Math.ceil((line.text?.length || 0) * (fontSize * 0.65));
-    estimatedWidth = Math.max(estimatedWidth, padding * 2 + contentWidth);
-  });
-
-    let totalHeight = padding;
-  const metrics = normalizedLines.map((line, index) => {
-    const fontSize = line.fontSize ?? defaultFontSize;
-    const lineHeight = line.lineHeight ?? defaultLineHeight;
-    const gapBefore = index === 0 ? 0 : line.gapBefore ?? 0;
-    const dy = index === 0 ? 0 : gapBefore + lineHeight;
-
-    totalHeight += index === 0 ? fontSize : dy;
-
-    return {
-      ...line,
-      fontSize,
-      lineHeight,
-      gapBefore,
-      dy,
-    };
-  });
-  totalHeight += padding;
-
-  let textY = padding;
-  const spans = metrics
-    .map((line, index) => {
-      const fontWeight = line.fontWeight ?? "normal";
-      const content = escapeXml(line.text ?? "");
-
-      if (index === 0) {
-        textY += line.fontSize;
-        return `<tspan x="${padding}" y="${textY}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
-      }
-
-      return `<tspan x="${padding}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
-    })
-    .join("");
-
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${estimatedWidth}" height="${totalHeight}" role="img">
-  <defs>
-    <style>
-      text { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; fill: ${textColor}; }
-    </style>
-  </defs>
-  <rect x="0" y="0" rx="${borderRadius}" ry="${borderRadius}" width="${estimatedWidth}" height="${totalHeight}" fill="${background}" stroke="${borderColor}" stroke-width="${borderWidth}" />
-  <text x="${padding}" y="${padding}" font-size="${defaultFontSize}" xml:space="preserve">
-    ${spans}
-  </text>
-</svg>`;
-
-  return { svg, width: estimatedWidth, height: totalHeight };
-}
-
 const ROOM_IMAGE_OPTIONS = {
   defaultFontSize: 24,
-  defaultLineHeight: 34,
-  padding: 40,
-  background: "#ffffff",
-  borderColor: "#d0d0d0",
-  minWidth: 560,
+  defaultLineHeight: 36,
+  padding: 48,
+  backgroundType: "notepad",
+  background: "#fffdf5",
+  borderColor: "#d7cbc1",
+  borderRadius: 28,
+  minWidth: 600,
+  notepadMarginOffset: 70,
+  notepadTextIndent: 20,
+  notepadLineSpacing: 38,
+  notepadLineColor: "#e2e9ff",
+  notepadMarginColor: "#ff7b7d",
+  notepadMarginWidth: 0,
+  notepadHoleRadius: 7,
+  notepadHoleSpacing: 120,
+  notepadHoleOffsetX: 28,
 };
 
 async function fetchRoomStatus(storeNo) {

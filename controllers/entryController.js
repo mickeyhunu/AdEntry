@@ -45,7 +45,7 @@ function buildCompositeSvg(lines, options = {}) {
   const textStartX = isNotepad
     ? padding + notepadMarginOffset + notepadTextIndent
     : padding;
-  const rightPadding = padding;
+  const rightPadding = isNotepad ? textStartX + 30 : padding;
 
   const normalizedLines = (Array.isArray(lines) ? lines : [lines]).map((line) =>
     typeof line === "string" ? { text: line } : { ...line }
@@ -227,7 +227,7 @@ function buildStoreEntryLines(store, entries, top5) {
 
       top5.forEach((entry, index) => {
         const name = entry.workerName ?? "";
-        const total = entry.total ?? 0;
+        const total = entry.total - 6 ?? 0;
         lines.push({
           text: `${index + 1}. ${name} - 합계 ${total}`,
           fontSize: 24,
@@ -292,7 +292,7 @@ export async function renderStoreEntries(req, res, next) {
     const topRankings = top5
       .map((entry, index) => {
         const name = escapeHtml(entry.workerName ?? "");
-        const total = entry.total ?? 0;
+        const total = entry.total - 6 ?? 0;
         return `<li><span class="rank">${index + 1}.</span><span class="name"> ${name}</span><span class="score"> - 합계 ${total}</span></li>`;
       })
       .join("");

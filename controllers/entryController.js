@@ -368,13 +368,45 @@ export async function renderStoreEntryImage(req, res, next) {
   }
 }
 
+function getAdjustedSeoulDate(now = new Date()) {
+  const timeZone = "Asia/Seoul";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  })
+    .formatToParts(now)
+    .reduce((acc, part) => {
+      if (part.type !== "literal") {
+        acc[part.type] = Number(part.value);
+      }
+      return acc;
+    }, {});
+
+  let { year, month, day, hour } = parts;
+
+  if (hour < 17) {
+    const previousDay = new Date(Date.UTC(year, month - 1, day));
+    previousDay.setUTCDate(previousDay.getUTCDate() - 1);
+
+    year = previousDay.getUTCFullYear();
+    month = previousDay.getUTCMonth() + 1;
+    day = previousDay.getUTCDate();
+  }
+
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
 export function renderTodayImage(_, res) {
-  const now = new Date();
+  const adjustedDate = getAdjustedSeoulDate();
   const todayText = new Intl.DateTimeFormat("ko-KR", {
     month: "long",
     day: "numeric",
     timeZone: "Asia/Seoul",
-  }).format(now);
+  }).format(adjustedDate);
 
   const svg = buildTodaySvg(todayText);
 

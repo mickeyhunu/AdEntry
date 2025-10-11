@@ -388,7 +388,7 @@ function getAdjustedSeoulDate(now = new Date()) {
 
   let { year, month, day, hour } = parts;
 
-  if (hour < 17) {
+  if (hour < 15) {
     const previousDay = new Date(Date.UTC(year, month - 1, day));
     previousDay.setUTCDate(previousDay.getUTCDate() - 1);
 

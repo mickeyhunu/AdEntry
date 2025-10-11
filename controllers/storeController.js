@@ -17,7 +17,8 @@ export async function renderHome(req, res, next) {
                  [<a href="/entry/roommap/${s.storeNo}">룸현황 보러가기</a>]
               </li>`;
     });
-    html += "</ul></body></html>";
+    html +=
+      '</ul><footer class="community-link">강남의 밤 소통방 "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">강밤</a>"</footer></body></html>';
 
     res.send(html);
   } catch (err) {

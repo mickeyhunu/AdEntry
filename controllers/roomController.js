@@ -235,7 +235,8 @@ export async function renderRoomInfo(req, res, next) {
     }
 
     html += `<div>업데이트: ${escapeHtml(room.updatedAtDisplay)}</div>`;
-    html += "</body></html>";
+    html +=
+      ' <footer class="community-link">강남의 밤 소통방 "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">강밤</a>"</footer></body></html>';
 
     res.send(html);
   } catch (err) {

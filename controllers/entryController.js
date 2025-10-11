@@ -319,6 +319,7 @@ export async function renderStoreEntries(req, res, next) {
  
   </head>
   <body>
+      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">https://open.kakao.com/o/gALpMlRg</a>"</header>
       <div class="container">
         <header class="page-header">
           <h1>${escapeHtml(store.storeName)} 엔트리</h1>
@@ -341,7 +342,6 @@ export async function renderStoreEntries(req, res, next) {
               : `<p class="empty">추천 데이터가 없습니다.</p>`
           }
         </section>
-        <footer class="community-link">강남의 밤 소통방 "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">강밤</a>"</footer>
       </div>
     </body>
   </html>`;

@@ -319,12 +319,12 @@ export async function renderStoreEntries(req, res, next) {
  
   </head>
   <body>
-    <div class="container">
-      <header class="page-header">
-        <h1>${escapeHtml(store.storeName)} 엔트리</h1>
-        <a class="back-link" href="/entry/home">← 가게 목록으로</a>
-      </header>
-      <p class="summary">총 출근인원: <strong>${totalCount}</strong>명</p>
+      <div class="container">
+        <header class="page-header">
+          <h1>${escapeHtml(store.storeName)} 엔트리</h1>
+          <a class="back-link" href="/entry/home">← 가게 목록으로</a>
+        </header>
+        <p class="summary">총 출근인원: <strong>${totalCount}</strong>명</p>
       <section>
         <h2>엔트리 목록</h2>
         ${
@@ -335,17 +335,18 @@ export async function renderStoreEntries(req, res, next) {
       </section>
       <section>
         <h2>추천 아가씨 TOP 5</h2>
-        ${
-          top5.length
-            ? `<li class="top-list">${topRankings}</li>`
-            : `<p class="empty">추천 데이터가 없습니다.</p>`
-        }
-      </section>
-    </div>
-  </body>
-</html>`;
+          ${
+            top5.length
+              ? `<li class="top-list">${topRankings}</li>`
+              : `<p class="empty">추천 데이터가 없습니다.</p>`
+          }
+        </section>
+        <footer class="community-link">강남의 밤 소통방 "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">강밤</a>"</footer>
+      </div>
+    </body>
+  </html>`;
 
-    res.send(html);
+      res.send(html);
   } catch (err) {
     next(err);
   }

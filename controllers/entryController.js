@@ -167,13 +167,19 @@ function buildTodaySvg(text) {
 </svg>`;
 }
 
-async function fetchStoreEntries(storeNo) {
-  const [[store]] = await pool.query(
-    `SELECT storeNo, storeName
-         FROM INFO_STORE
-        WHERE storeNo=?`,
+async function fetchSingleStoreEntries(storeNo, storeRow = null) {
+  let store = storeRow;
+
+  if (!store) {
+    const [[foundStore]] = await pool.query(
+      `SELECT storeNo, storeName
+           FROM INFO_STORE
+          WHERE storeNo=?`,
       [storeNo]
-  );
+    );
+
+    store = foundStore;
+  }
 
   if (!store) {
     return null;
@@ -184,7 +190,7 @@ async function fetchStoreEntries(storeNo) {
          FROM ENTRY_TODAY
         WHERE storeNo=?
         ORDER BY createdAt DESC`,
-    [storeNo]
+    [store.storeNo]
   );
 
   const ranked = entries.map((entry) => ({
@@ -197,12 +203,53 @@ async function fetchStoreEntries(storeNo) {
   return { store, entries, top5 };
 }
 
+async function fetchAllStoreEntries() {
+  const [stores] = await pool.query(
+    `SELECT storeNo, storeName
+         FROM INFO_STORE
+        ORDER BY storeNo ASC`
+  );
+
+  const results = [];
+
+  for (const store of stores) {
+    const data = await fetchSingleStoreEntries(store.storeNo, store);
+    if (data) {
+      results.push(data);
+    }
+  }
+
+  return results;
+}
+
 function chunkArray(items, size) {
   const chunks = [];
   for (let start = 0; start < items.length; start += size) {
     chunks.push(items.slice(start, start + size));
   }
   return chunks;
+}
+
+function buildEntryRowsHtml(entries) {
+  const entryRows = chunkArray(entries, 10);
+  return entryRows
+    .map((row) => {
+      const names = row
+        .map((entry) => `<span class="entry-name">${escapeHtml(entry.workerName ?? "")}</span>`)
+        .join(" ");
+      return `<li class="entry-row">${names}</li>`;
+    })
+    .join("");
+}
+
+function buildTop5Html(top5) {
+  return top5
+    .map((entry, index) => {
+      const name = escapeHtml(entry.workerName ?? "");
+      const total = entry.total - 6 ?? 0;
+      return `<li><span class="rank">${index + 1}.</span><span class="name"> ${name}</span><span class="score"> - 합계 ${total}</span></li>`;
+    })
+    .join("");
 }
 
 function buildStoreEntryLines(store, entries, top5) {
@@ -261,6 +308,79 @@ function buildStoreEntryLines(store, entries, top5) {
   return lines;
 }
 
+function buildAllStoreEntryLines(storeDataList) {
+  const totalCount = storeDataList.reduce(
+    (sum, data) => sum + data.entries.length,
+    0
+  );
+
+  const lines = [
+    { text: "전체 가게 엔트리", fontSize: 44, fontWeight: "700" },
+    {
+      text: `총 출근인원: ${totalCount}명 (가게 수: ${storeDataList.length}곳)`,
+      fontSize: 28,
+      fontWeight: "600",
+      gapBefore: 16,
+    },
+  ];
+
+  storeDataList.forEach((data) => {
+    lines.push({
+      text: data.store.storeName,
+      fontSize: 34,
+      fontWeight: "700",
+      gapBefore: 32,
+    });
+
+    if (data.entries.length) {
+      const entryRows = chunkArray(data.entries, 10);
+      entryRows.forEach((row, index) => {
+        lines.push({
+          text: row.map((entry) => entry.workerName ?? "").join(" "),
+          fontSize: 24,
+          lineHeight: 34,
+          gapBefore: index === 0 ? 12 : 8,
+        });
+      });
+
+      if (data.top5.length) {
+        lines.push({
+          text: "추천 아가씨 TOP 5",
+          fontSize: 28,
+          fontWeight: "600",
+          gapBefore: 20,
+        });
+
+        data.top5.forEach((entry, index) => {
+          const total = entry.total - 6 ?? 0;
+          lines.push({
+            text: `${index + 1}. ${entry.workerName ?? ""} - 합계 ${total}`,
+            fontSize: 24,
+            lineHeight: 34,
+            gapBefore: index === 0 ? 10 : 6,
+          });
+        });
+      } else {
+        lines.push({
+          text: "추천 데이터가 없습니다.",
+          fontSize: 24,
+          lineHeight: 34,
+          gapBefore: 16,
+        });
+      }
+    } else {
+      lines.push({
+        text: "엔트리가 없습니다.",
+        fontSize: 24,
+        lineHeight: 34,
+        gapBefore: 12,
+      });
+    }
+  });
+
+  return lines;
+}
+
 const STORE_IMAGE_OPTIONS = {
   defaultFontSize: 24,
   defaultLineHeight: 36,
@@ -285,30 +405,82 @@ const STORE_IMAGE_OPTIONS = {
 export async function renderStoreEntries(req, res, next) {
   try {
     const { storeNo } = req.params;
+    const storeId = Number(storeNo);
 
-    const data = await fetchStoreEntries(storeNo);
+    if (storeId === 0) {
+      const storeDataList = await fetchAllStoreEntries();
+      if (!storeDataList.length) return res.status(404).send("가게를 찾을 수 없습니다.");
+
+      const totalEntries = storeDataList.reduce(
+        (sum, data) => sum + data.entries.length,
+        0
+      );
+
+      const sections = storeDataList
+        .map(({ store, entries, top5 }) => {
+          const entryListMarkup = entries.length
+            ? `<ul class="entry-list">${buildEntryRowsHtml(entries)}</ul>`
+            : `<p class="empty">엔트리가 없습니다.</p>`;
+          const topListMarkup = top5.length
+            ? `<ol class="top-list">${buildTop5Html(top5)}</ol>`
+            : `<p class="empty">추천 데이터가 없습니다.</p>`;
+
+          return `<section class="store-section">
+            <header class="store-header">
+              <h2>${escapeHtml(store.storeName)}</h2>
+              <p class="summary">총 출근인원: <strong>${entries.length}</strong>명</p>
+            </header>
+            <div class="store-content">
+              <div class="entry-section">
+                <h3>엔트리 목록</h3>
+                ${entryListMarkup}
+              </div>
+              <div class="top-section">
+                <h3>추천 아가씨 TOP 5</h3>
+                ${topListMarkup}
+              </div>
+            </div>
+          </section>`;
+        })
+        .join("");
+
+      const html = `<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>전체 가게 엔트리</title>
+
+  </head>
+  <body>
+      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">https://open.kakao.com/o/gALpMlRg</a>"</header>
+      <div class="container">
+        <header class="page-header">
+          <h1>전체 가게 엔트리</h1>
+          <a class="back-link" href="/entry/home">← 가게 목록으로</a>
+        </header>
+        <p class="summary">총 출근인원: <strong>${totalEntries}</strong>명 / 가게 수: <strong>${storeDataList.length}</strong>곳</p>
+        ${sections}
+      </div>
+    </body>
+  </html>`;
+
+      res.send(html);
+      return;
+    }
+
+    const data = await fetchSingleStoreEntries(storeNo);
     if (!data) return res.status(404).send("가게를 찾을 수 없습니다.");
 
     const { store, entries, top5 } = data;
     const totalCount = entries.length;
 
-    const entryRows = chunkArray(entries, 10);
-    const entryItems = entryRows
-      .map((row) => {
-        const names = row
-          .map((entry) => `<span class="entry-name">${escapeHtml(entry.workerName ?? "")}</span>`)
-          .join(" ");
-        return `<li class="entry-row">${names}</li>`;
-      })
-      .join("  ");
-
-    const topRankings = top5
-      .map((entry, index) => {
-        const name = escapeHtml(entry.workerName ?? "");
-        const total = entry.total - 6 ?? 0;
-        return `<li><span class="rank">${index + 1}.</span><span class="name"> ${name}</span><span class="score"> - 합계 ${total}</span></li>`;
-      })
-      .join("");
+    const entryListMarkup = entries.length
+      ? `<ul class="entry-list">${buildEntryRowsHtml(entries)}</ul>`
+      : `<p class="empty">엔트리가 없습니다.</p>`;
+    const topListMarkup = top5.length
+      ? `<ol class="top-list">${buildTop5Html(top5)}</ol>`
+      : `<p class="empty">추천 데이터가 없습니다.</p>`;
 
     const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -316,7 +488,7 @@ export async function renderStoreEntries(req, res, next) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(store.storeName)} 엔트리</title>
- 
+
   </head>
   <body>
       <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">https://open.kakao.com/o/gALpMlRg</a>"</header>
@@ -328,25 +500,17 @@ export async function renderStoreEntries(req, res, next) {
         <p class="summary">총 출근인원: <strong>${totalCount}</strong>명</p>
       <section>
         <h2>엔트리 목록</h2>
-        ${
-          entries.length
-            ? `<li class="entry-list">${entryItems}</li>`
-            : `<p class="empty">엔트리가 없습니다.</p>`
-        }
+        ${entryListMarkup}
       </section>
       <section>
         <h2>추천 아가씨 TOP 5</h2>
-          ${
-            top5.length
-              ? `<li class="top-list">${topRankings}</li>`
-              : `<p class="empty">추천 데이터가 없습니다.</p>`
-          }
+          ${topListMarkup}
         </section>
       </div>
     </body>
   </html>`;
 
-      res.send(html);
+    res.send(html);
   } catch (err) {
     next(err);
   }
@@ -356,7 +520,22 @@ export async function renderStoreEntryImage(req, res, next) {
   try {
     const { storeNo } = req.params;
 
-    const data = await fetchStoreEntries(storeNo);
+    const storeId = Number(storeNo);
+
+    if (storeId === 0) {
+      const storeDataList = await fetchAllStoreEntries();
+      if (!storeDataList.length)
+        return res.status(404).send("가게를 찾을 수 없습니다.");
+
+      const lines = buildAllStoreEntryLines(storeDataList);
+      const { svg } = buildCompositeSvg(lines, STORE_IMAGE_OPTIONS);
+
+      res.set("Cache-Control", "no-store");
+      res.type("image/svg+xml").send(svg);
+      return;
+    }
+
+    const data = await fetchSingleStoreEntries(storeNo);
     if (!data) return res.status(404).send("가게를 찾을 수 없습니다.");
 
     const lines = buildStoreEntryLines(data.store, data.entries, data.top5);

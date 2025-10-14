@@ -178,23 +178,16 @@ const ROOM_IMAGE_OPTIONS = {
   minWidth: 560,
 };
 
-async function fetchRoomStatus(storeNo) {
-  const [[room]] = await pool.query(
-    `SELECT r.storeNo, s.storeName, r.roomInfo, r.waitInfo, r.roomDetail, r.updatedAt
-         FROM INFO_ROOM r
-         JOIN INFO_STORE s ON s.storeNo = r.storeNo
-        WHERE r.storeNo=?`,
-      [storeNo]
-  );
-
-  if (!room) {
-    return null;
-  }
-
+function normalizeRoomRow(room) {
   const roomInfoDisplay =
-    Number(room.roomInfo) === 999 ? "여유" : (room.roomInfo ?? "N/A");
+    Number(room.roomInfo) === 999 ? "여유" : room.roomInfo ?? "N/A";
   const waitInfoDisplay = room.waitInfo ?? "N/A";
   const { obj: detailObj, text: detailRaw } = safeParseJSON(room.roomDetail);
+
+  const updatedAtDate = room.updatedAt ? new Date(room.updatedAt) : null;
+  const updatedAtDisplay = updatedAtDate
+    ? updatedAtDate.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
+    : "N/A";
 
   return {
     storeNo: room.storeNo,
@@ -204,17 +197,79 @@ async function fetchRoomStatus(storeNo) {
     detailObj,
     detailRaw,
     updatedAt: room.updatedAt,
-    updatedAtDisplay: new Date(room.updatedAt).toLocaleString("ko-KR", {
-      timeZone: "Asia/Seoul",
-    }),
+    updatedAtDisplay,
   };
+}
+
+async function fetchSingleRoomStatus(storeNo) {
+  const [[room]] = await pool.query(
+    `SELECT r.storeNo, s.storeName, r.roomInfo, r.waitInfo, r.roomDetail, r.updatedAt
+         FROM INFO_ROOM r
+         JOIN INFO_STORE s ON s.storeNo = r.storeNo
+        WHERE r.storeNo=?`,
+    [storeNo]
+  );
+
+  if (!room) {
+    return null;
+  }
+
+  return normalizeRoomRow(room);
+}
+
+async function fetchAllRoomStatuses() {
+  const [rooms] = await pool.query(
+    `SELECT r.storeNo, s.storeName, r.roomInfo, r.waitInfo, r.roomDetail, r.updatedAt
+         FROM INFO_ROOM r
+         JOIN INFO_STORE s ON s.storeNo = r.storeNo
+        ORDER BY r.storeNo ASC`
+  );
+
+  return rooms.map(normalizeRoomRow);
 }
 
 export async function renderRoomInfo(req, res, next) {
   try {
     const { storeNo } = req.params;
+    const storeId = Number(storeNo);
 
-    const room = await fetchRoomStatus(storeNo);
+    if (storeId === 0) {
+      const rooms = await fetchAllRoomStatuses();
+      if (!rooms.length)
+        return res.status(404).send("룸현황 정보가 없습니다.");
+
+      const sections = rooms
+        .map((room) => {
+          const detailLines = extractDetailLines(room.detailObj, room.detailRaw);
+          const detailMarkup = detailLines.length
+            ? `<pre>${escapeHtml(detailLines.join("\n"))}</pre>`
+            : "<p>상세 정보 없음</p>";
+
+          return `<section class="store-section">
+            <h2>${escapeHtml(room.storeName)}</h2>
+            <div>룸 정보: ${escapeHtml(room.roomInfo)}</div>
+            <div>웨이팅 정보: ${escapeHtml(room.waitInfo)}</div>
+            <h3>상세 정보</h3>
+            ${detailMarkup}
+            <div>업데이트: ${escapeHtml(room.updatedAtDisplay)}</div>
+          </section>`;
+        })
+        .join("");
+
+      const html = `<!DOCTYPE html><html><head><meta charset='UTF-8'>
+<title>전체 가게 룸현황</title></head><body>
+<header class="community-link">강남의 밤 소통방 "강밤" : "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">https://open.kakao.com/o/gALpMlRg</a>"</header>
+<h1>전체 가게 룸현황</h1>
+<a href="/entry/home">← 가게 목록으로</a><br/><br/>
+<p>총 가게 수: <strong>${rooms.length}</strong>곳</p>
+${sections}
+</body></html>`;
+
+      res.send(html);
+      return;
+    }
+
+    const room = await fetchSingleRoomStatus(storeNo);
     if (!room) return res.status(404).send("룸현황 정보가 없습니다.");
 
     const detailLines = extractDetailLines(room.detailObj, room.detailRaw);
@@ -281,11 +336,93 @@ function buildRoomImageLines(room) {
   return lines;
 }
 
+function buildAllRoomImageLines(rooms) {
+  const lines = [
+    { text: "전체 가게 룸현황", fontSize: 44, fontWeight: "700" },
+    {
+      text: `총 가게 수: ${rooms.length}곳`,
+      fontSize: 28,
+      fontWeight: "600",
+      gapBefore: 16,
+    },
+  ];
+
+  rooms.forEach((room) => {
+    const detailLines = extractDetailLines(room.detailObj, room.detailRaw);
+
+    lines.push({
+      text: room.storeName,
+      fontSize: 34,
+      fontWeight: "700",
+      gapBefore: 32,
+    });
+    lines.push({
+      text: `룸 정보: ${room.roomInfo}`,
+      fontSize: 26,
+      fontWeight: "600",
+      gapBefore: 12,
+    });
+    lines.push({
+      text: `웨이팅 정보: ${room.waitInfo}`,
+      fontSize: 24,
+      gapBefore: 8,
+    });
+
+    if (detailLines.length) {
+      lines.push({
+        text: "상세 정보",
+        fontSize: 28,
+        fontWeight: "600",
+        gapBefore: 16,
+      });
+
+      detailLines.forEach((line, index) => {
+        lines.push({
+          text: line,
+          fontSize: 22,
+          lineHeight: 32,
+          gapBefore: index === 0 ? 10 : 6,
+        });
+      });
+    } else {
+      lines.push({
+        text: "상세 정보 없음",
+        fontSize: 22,
+        lineHeight: 32,
+        gapBefore: 16,
+      });
+    }
+
+    lines.push({
+      text: `업데이트: ${room.updatedAtDisplay}`,
+      fontSize: 20,
+      gapBefore: 14,
+    });
+  });
+
+  return lines;
+}
+
 export async function renderRoomImage(req, res, next) {
   try {
     const { storeNo } = req.params;
 
-    const room = await fetchRoomStatus(storeNo);
+    const storeId = Number(storeNo);
+
+    if (storeId === 0) {
+      const rooms = await fetchAllRoomStatuses();
+      if (!rooms.length)
+        return res.status(404).send("룸현황 정보가 없습니다.");
+
+      const lines = buildAllRoomImageLines(rooms);
+      const { svg } = buildCompositeSvg(lines, ROOM_IMAGE_OPTIONS);
+
+      res.set("Cache-Control", "no-store");
+      res.type("image/svg+xml").send(svg);
+      return;
+    }
+
+    const room = await fetchSingleRoomStatus(storeNo);
     if (!room) return res.status(404).send("룸현황 정보가 없습니다.");
 
     const lines = buildRoomImageLines(room);

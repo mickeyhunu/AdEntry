@@ -1,3 +1,4 @@
+# cd Documents/aws
 # ssh -i .\adPlusKey.pem ubuntu@13.125.253.91 --- cmd에서 우분투 접속
 
 # sudo nano /etc/nginx/sites-available/adplus --- cmd에서 nginx 우회수정

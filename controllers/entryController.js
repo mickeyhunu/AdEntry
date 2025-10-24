@@ -1,13 +1,8 @@
 import { pool } from "../config/db.js";
-import { createQrSvgDataUri } from "../utils/communityQr.js";
 
 const COMMUNITY_CHAT_LINK = "https://open.kakao.com/o/gALpMlRg";
-const COMMUNITY_CONTACT_TEXT = `010-8031-9616`;
-const COMMUNITY_QR_IMAGE_SRC = createQrSvgDataUri(COMMUNITY_CHAT_LINK, {
-  margin: 2,
-  darkColor: "#111827",
-  lightColor: "#ffffff",
-});
+const COMMUNITY_CONTACT_TEXT = `강남 하퍼 010-8031-9616`;
+const COMMUNITY_QR_IMAGE_SRC = "/images/community-qr.png";
 
 const PAGE_STYLES = `
   body {
@@ -615,7 +610,7 @@ function buildStoreEntryLines(store, entries, top5) {
       fontSize: 60,
       fontWeight: "800",
       fill: "#b91c1c",
-      gapBefore: 30,
+      gapBefore: 100,
     },
     {
       text: `${store.storeName} 엔트리`,
@@ -681,14 +676,19 @@ function buildStoreImageDecorations(layout, top5 = []) {
   const overlaysAboveText = [];
 
   const watermarkId = "communityWatermarkPattern";
-  const watermarkText = `${COMMUNITY_CONTACT_TEXT}`;
-  const watermarkPatternWidth = 480;
+  const watermarkText = `${COMMUNITY_CONTACT_TEXT}   `;
+  const watermarkCharWidth = 50;
+  const watermarkPatternWidth = Math.max(560, watermarkText.length * watermarkCharWidth);
   const watermarkPatternHeight = 260;
 
   defs.push(`
     <pattern id="${watermarkId}" patternUnits="userSpaceOnUse" width="${watermarkPatternWidth}" height="${watermarkPatternHeight}" patternTransform="rotate(-24)">
-      <text x="0" y="90" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.4">${escapeXml(watermarkText)}</text>
-      <text x="${watermarkPatternWidth / 2}" y="${watermarkPatternHeight - 40}" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.4">${escapeXml(watermarkText)}</text>
+      <text x="24" y="90" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.4">${escapeXml(
+        watermarkText
+      )}</text>
+      <text x="${watermarkPatternWidth / 2}" y="${watermarkPatternHeight - 40}" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.4">${escapeXml(
+        watermarkText
+      )}</text>
     </pattern>
   `);
 

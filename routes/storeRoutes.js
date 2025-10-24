@@ -15,9 +15,9 @@ router.get("/", (req, res) => {
 
 router.get("/home", renderHome);
 router.get("/entrymap/:storeNo", renderStoreEntries);
-router.get("/entrymap/:storeNo/entryImage", renderStoreEntryImage);
+router.get("/entrymap/:storeNo/entryImagee", renderStoreEntryImage);
 router.get("/roommap/:storeNo", renderRoomInfo);
-router.get("/roommap/:storeNo/roomImage", renderRoomImage);
+router.get("/roommap/:storeNo/roomImagee", renderRoomImage);
 router.get("/today", renderTodayImage);
 
 export default router;

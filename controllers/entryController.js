@@ -244,10 +244,10 @@ function buildEntryRowsHtml(entries) {
 
 function buildTop5Html(top5) {
   return top5
-    .map((entry, index) => {
+    .map((entry) => {
       const name = escapeHtml(entry.workerName ?? "");
       const total = entry.total - 6 ?? 0;
-      return `<li><span class="rank">${index + 1}.</span><span class="name"> ${name}</span><span class="score"> - 합계 ${total}</span></li>`;
+      return `<li><span class="name">${name}</span><span class="score"> - 합계 ${total}</span></li>`;
     })
     .join("");
 }

@@ -228,87 +228,6 @@ const PAGE_STYLES = `
   }
 `;
 
-const LEGACY_ENTRY_PAGE_STYLES = `
-  body {
-    margin: 0;
-    padding: 24px;
-    font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
-    background: #ffffff;
-    color: #111827;
-  }
-
-  a {
-    color: #2563eb;
-    text-decoration: none;
-  }
-
-  a:hover {
-    text-decoration: underline;
-  }
-
-  .legacy-container {
-    max-width: 760px;
-    margin: 0 auto;
-  }
-
-  .legacy-back-link {
-    display: inline-block;
-    margin-bottom: 12px;
-    font-size: 14px;
-  }
-
-  h1 {
-    margin: 0 0 12px;
-    font-size: 28px;
-  }
-
-  .legacy-summary {
-    margin: 0 0 24px;
-    font-size: 16px;
-    color: #374151;
-  }
-
-  .legacy-summary strong {
-    font-weight: 600;
-  }
-
-  .legacy-entry-section h2,
-  .legacy-top5 h2 {
-    margin: 0 0 12px;
-    font-size: 22px;
-  }
-
-  .legacy-entries {
-    font-size: 16px;
-    line-height: 1.8;
-    word-break: keep-all;
-  }
-
-  .legacy-entries br {
-    content: "";
-    margin-bottom: 8px;
-  }
-
-  .legacy-top5 {
-    margin-top: 32px;
-  }
-
-  .legacy-top5 ol {
-    margin: 8px 0 0;
-    padding-left: 20px;
-  }
-
-  .legacy-top5 li {
-    margin-bottom: 6px;
-  }
-
-  .legacy-empty {
-    margin: 0;
-    font-size: 16px;
-    color: #6b7280;
-  }
-`;
-
 function escapeXml(value = "") {
   return value
     .replace(/&/g, "&amp;")
@@ -644,44 +563,6 @@ function buildEntryRowsHtml(entries) {
       return `<li class="entry-row">${names}</li>`;
     })
     .join("");
-}
-
-function buildLegacyEntryLines(entries) {
-  return chunkArray(entries, 10)
-    .map((row) => row.map((entry) => escapeHtml(entry.workerName ?? "")).join(" "))
-    .join("<br/>");
-}
-
-function buildLegacyEntrySection(entries) {
-  if (!Array.isArray(entries) || entries.length === 0) {
-    return `<p class="legacy-empty">엔트리가 없습니다.</p>`;
-  }
-
-  const rowsMarkup = buildLegacyEntryLines(entries);
-
-  return `<section class="legacy-entry-section">
-    <h2>엔트리 목록</h2>
-    <div class="legacy-entries">${rowsMarkup}</div>
-  </section>`;
-}
-
-function buildLegacyTop5Section(top5 = []) {
-  if (!Array.isArray(top5) || top5.length === 0) {
-    return "";
-  }
-
-  const items = top5
-    .map((entry, index) => {
-      const name = escapeHtml(entry.workerName ?? "");
-      const adjustedTotal = Math.max((entry.total ?? 0) - 6, 0);
-      return `<li>${index + 1}. ${name} - 합계 ${adjustedTotal}</li>`;
-    })
-    .join("");
-
-  return `<section class="legacy-top5">
-    <h2>추천 아가씨 TOP 5</h2>
-    <ol>${items}</ol>
-  </section>`;
 }
 
 function buildTop5Html(top5) {
@@ -1086,26 +967,45 @@ export async function renderStoreEntries(req, res, next) {
     const { store, entries, top5 } = data;
     const totalCount = entries.length;
 
-    const legacyHtml = `<!DOCTYPE html>
+    const entryListMarkup = entries.length
+      ? `<ul class="entry-list">${buildEntryRowsHtml(entries)}</ul>`
+      : `<p class="empty">엔트리가 없습니다.</p>`;
+    const entrySectionMarkup = `<section class="entry-section">
+        <h2>엔트리 목록</h2>
+        ${entryListMarkup}
+      </section>`;
+    const topSectionMarkup = buildTopSection(top5, {
+      headingTag: "h2",
+      containerTag: "section",
+    });
+
+    const html = `<!DOCTYPE html>
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(store.storeName)} 엔트리</title>
-    <style>${LEGACY_ENTRY_PAGE_STYLES}</style>
+    <style>${PAGE_STYLES}</style>
   </head>
   <body>
-      <main class="legacy-container">
-        <a class="legacy-back-link" href="/entry/home">← 가게 목록으로</a>
-        <h1>${escapeHtml(store.storeName)} 엔트리</h1>
-        <p class="legacy-summary">총 출근인원: <strong>${totalCount}</strong>명</p>
-        ${buildLegacyEntrySection(entries)}
-        ${buildLegacyTop5Section(top5)}
-      </main>
+      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>"</header>
+      <div class="container">
+        <header class="page-header">
+          <h1>${escapeHtml(store.storeName)} 엔트리</h1>
+          <a class="back-link" href="/entry/home">← 가게 목록으로</a>
+        </header>
+        <p class="summary">총 출근인원: <strong>${totalCount}</strong>명</p>
+        <div class="store-section single-store">
+          <div class="store-content single">
+            ${entrySectionMarkup}
+            ${topSectionMarkup}
+          </div>
+        </div>
+      </div>
     </body>
   </html>`;
 
-    res.send(legacyHtml);
+    res.send(html);
   } catch (err) {
     next(err);
   }

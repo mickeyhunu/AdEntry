@@ -2,7 +2,7 @@ import { pool } from "../config/db.js";
 import { createQrSvgDataUri } from "../utils/communityQr.js";
 
 const COMMUNITY_CHAT_LINK = "https://open.kakao.com/o/gALpMlRg";
-const COMMUNITY_CONTACT_TEXT = `강밤톡방 연락처 : ${COMMUNITY_CHAT_LINK}`;
+const COMMUNITY_CONTACT_TEXT = `010-8031-9616`;
 const COMMUNITY_QR_IMAGE_SRC = createQrSvgDataUri(COMMUNITY_CHAT_LINK, {
   margin: 2,
   darkColor: "#111827",
@@ -612,11 +612,10 @@ function buildStoreEntryLines(store, entries, top5) {
   const lines = [
     {
       text: COMMUNITY_CONTACT_TEXT,
-      fontSize: 40,
+      fontSize: 60,
       fontWeight: "800",
       fill: "#b91c1c",
-      align: "center",
-      textAnchor: "middle",
+      gapBefore: 30,
     },
     {
       text: `${store.storeName} 엔트리`,
@@ -682,14 +681,14 @@ function buildStoreImageDecorations(layout, top5 = []) {
   const overlaysAboveText = [];
 
   const watermarkId = "communityWatermarkPattern";
-  const watermarkText = `강밤톡방 ${COMMUNITY_CHAT_LINK}`;
+  const watermarkText = `${COMMUNITY_CONTACT_TEXT}`;
   const watermarkPatternWidth = 480;
   const watermarkPatternHeight = 260;
 
   defs.push(`
     <pattern id="${watermarkId}" patternUnits="userSpaceOnUse" width="${watermarkPatternWidth}" height="${watermarkPatternHeight}" patternTransform="rotate(-24)">
-      <text x="0" y="90" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.08">${escapeXml(watermarkText)}</text>
-      <text x="${watermarkPatternWidth / 2}" y="${watermarkPatternHeight - 40}" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.08">${escapeXml(watermarkText)}</text>
+      <text x="0" y="90" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.4">${escapeXml(watermarkText)}</text>
+      <text x="${watermarkPatternWidth / 2}" y="${watermarkPatternHeight - 40}" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.4">${escapeXml(watermarkText)}</text>
     </pattern>
   `);
 
@@ -1041,6 +1040,13 @@ export async function renderStoreEntryImage(req, res, next) {
 
     res.set("Cache-Control", "no-store");
     res.type("image/svg+xml").send(svg);
+
+    //조회
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const referer = req.get('referer') || '직접 요청';
+    const ua = req.get('user-agent') || '알 수 없음';
+
+    console.log(`[IMAGE ACCESS] IP: ${ip}, REFERER: ${referer}, UA: ${ua}`);
   } catch (err) {
     next(err);
   }

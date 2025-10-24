@@ -314,13 +314,15 @@ function computeCompositeLayout(lines, options = {}) {
       cursorY += dy;
     }
 
+    const lineX = line.x ?? textStartX;
+
     metrics.push({
       ...line,
       fontSize,
       lineHeight,
       gapBefore,
       dy,
-      x: textStartX,
+      x: lineX,
       y: cursorY,
     });
   });
@@ -393,12 +395,16 @@ function renderCompositeSvg(layout, extras = {}) {
       const fontWeight = line.fontWeight ?? "normal";
       const content = escapeXml(line.text ?? "");
       const fill = line.fill ? ` fill="${line.fill}"` : "";
+      const align = line.align ?? line.textAlign;
+      const computedAnchor = line.textAnchor ?? (align === "center" ? "middle" : align === "end" ? "end" : undefined);
+      const textAnchorAttr = computedAnchor ? ` text-anchor="${computedAnchor}"` : "";
+      const spanX = line.x ?? (align === "center" ? estimatedWidth / 2 : align === "end" ? estimatedWidth - padding : textStartX);
 
       if (index === 0) {
-        return `<tspan x="${textStartX}" y="${line.y}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}>${content}</tspan>`;
+        return `<tspan x="${spanX}" y="${line.y}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}${textAnchorAttr}>${content}</tspan>`;
       }
 
-      return `<tspan x="${textStartX}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}>${content}</tspan>`;
+      return `<tspan x="${spanX}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}${textAnchorAttr}>${content}</tspan>`;
     })
     .join("");
 
@@ -609,6 +615,8 @@ function buildStoreEntryLines(store, entries, top5) {
       fontSize: 40,
       fontWeight: "800",
       fill: "#b91c1c",
+      align: "center",
+      textAnchor: "middle",
     },
     {
       text: `${store.storeName} 엔트리`,
@@ -675,17 +683,19 @@ function buildStoreImageDecorations(layout, top5 = []) {
 
   const watermarkId = "communityWatermarkPattern";
   const watermarkText = `강밤톡방 ${COMMUNITY_CHAT_LINK}`;
+  const watermarkPatternWidth = 480;
+  const watermarkPatternHeight = 260;
 
   defs.push(`
-    <pattern id="${watermarkId}" patternUnits="userSpaceOnUse" width="360" height="200" patternTransform="rotate(-24)">
-      <text x="0" y="60" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.1">${escapeXml(watermarkText)}</text>
-      <text x="180" y="160" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.1">${escapeXml(watermarkText)}</text>
+    <pattern id="${watermarkId}" patternUnits="userSpaceOnUse" width="${watermarkPatternWidth}" height="${watermarkPatternHeight}" patternTransform="rotate(-24)">
+      <text x="0" y="90" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.08">${escapeXml(watermarkText)}</text>
+      <text x="${watermarkPatternWidth / 2}" y="${watermarkPatternHeight - 40}" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.08">${escapeXml(watermarkText)}</text>
     </pattern>
   `);
 
   defs.push(`
-    <filter id="qrShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#1d4ed8" flood-opacity="0.18" />
+    <filter id="qrShadow" x="-20%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#f59e0b" flood-opacity="0.25" />
     </filter>
   `);
 
@@ -753,7 +763,7 @@ function buildStoreQrCard(layout, top5) {
     }, 0);
   }
 
-  const desiredX = layout.textStartX + Math.max(topWidth, 360) + 32;
+  const desiredX = layout.textStartX + Math.max(topWidth, 360) + 16;
   let cardX = desiredX;
   const fallbackX = layout.estimatedWidth - options.padding - cardWidth;
   if (fallbackX > cardX) {
@@ -775,12 +785,21 @@ function buildStoreQrCard(layout, top5) {
   const linkY = titleY + 24;
   const infoText = "스캔하고 강밤톡방 참여";
 
+  const stickyRotation = -2.5;
+  const tapeWidth = Math.max(120, cardWidth * 0.6);
+  const tapeHeight = 24;
+  const tapeX = (cardWidth - tapeWidth) / 2;
+  const tapeY = -tapeHeight / 2;
+
   return `<g transform="translate(${cardX}, ${cardY})">
-    <rect width="${cardWidth}" height="${cardHeight}" rx="24" ry="24" fill="#ffffff" stroke="#1d4ed8" stroke-width="2" filter="url(#qrShadow)" />
-    <image href="${COMMUNITY_QR_IMAGE_SRC}" x="${cardPadding}" y="${cardPadding}" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid meet" />
-    <text x="${cardWidth / 2}" y="${infoY}" font-size="14" font-weight="600" text-anchor="middle" fill="#1f2937">${escapeXml(infoText)}</text>
-    <text x="${cardWidth / 2}" y="${titleY}" font-size="20" font-weight="700" text-anchor="middle" fill="#1d4ed8">${escapeXml("강밤 오픈채팅")}</text>
-    <text x="${cardWidth / 2}" y="${linkY}" font-size="13" text-anchor="middle" fill="#1f2937" lengthAdjust="spacingAndGlyphs" textLength="${cardWidth - cardPadding * 2}">${escapeXml(COMMUNITY_CHAT_LINK)}</text>
+    <g transform="rotate(${stickyRotation} ${cardWidth / 2} ${cardHeight / 2})">
+      <rect width="${cardWidth}" height="${cardHeight}" rx="20" ry="20" fill="#fef3c7" stroke="#fcd34d" stroke-width="1.5" filter="url(#qrShadow)" />
+      <rect x="${tapeX}" y="${tapeY}" width="${tapeWidth}" height="${tapeHeight}" rx="8" fill="#fde68a" opacity="0.9" />
+      <image href="${COMMUNITY_QR_IMAGE_SRC}" x="${cardPadding}" y="${cardPadding}" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid meet" />
+      <text x="${cardWidth / 2}" y="${infoY}" font-size="14" font-weight="600" text-anchor="middle" fill="#92400e">${escapeXml(infoText)}</text>
+      <text x="${cardWidth / 2}" y="${titleY}" font-size="20" font-weight="700" text-anchor="middle" fill="#b45309">${escapeXml("강밤 오픈채팅")}</text>
+      <text x="${cardWidth / 2}" y="${linkY}" font-size="13" text-anchor="middle" fill="#7c2d12" lengthAdjust="spacingAndGlyphs" textLength="${cardWidth - cardPadding * 2}">${escapeXml(COMMUNITY_CHAT_LINK)}</text>
+    </g>
   </g>`;
 }
 

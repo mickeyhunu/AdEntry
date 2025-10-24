@@ -1,240 +1,12 @@
 import { pool } from "../config/db.js";
 import { createQrSvgDataUri } from "../utils/communityQr.js";
 
-const COMMUNITY_CHAT_URL = "https://open.kakao.com/o/gALpMlRg";
-const COMMUNITY_QR_IMAGE_SRC = createQrSvgDataUri(COMMUNITY_CHAT_URL, {
+const COMMUNITY_CHAT_LINK = "https://open.kakao.com/o/gALpMlRg";
+const COMMUNITY_QR_IMAGE_SRC = createQrSvgDataUri(COMMUNITY_CHAT_LINK, {
   margin: 2,
   darkColor: "#111827",
   lightColor: "#ffffff",
 });
-
-const PAGE_STYLES = `
-  body {
-    margin: 0;
-    font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
-    background: #f5f6fb;
-    color: #1f2937;
-  }
-
-  a {
-    color: #2563eb;
-  }
-
-  a:hover,
-  .community-link a:hover,
-  .back-link:hover,
-  .qr-link:hover {
-    text-decoration: underline;
-  }
-
-  .community-link {
-    padding: 12px 16px;
-    text-align: center;
-    background: #111827;
-    color: #f9fafb;
-    font-size: 14px;
-  }
-
-  .community-link a {
-    color: #facc15;
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .container {
-    max-width: 1040px;
-    margin: 0 auto;
-    padding: 40px 24px 64px;
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-  }
-
-  .page-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .page-header h1 {
-    margin: 0;
-    font-size: 32px;
-  }
-
-  .back-link {
-    font-weight: 500;
-    text-decoration: none;
-  }
-
-  .summary {
-    margin: 0;
-    color: #334155;
-  }
-
-  .store-section {
-    background: #ffffff;
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .store-header {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .store-header h2 {
-    margin: 0;
-    font-size: 28px;
-  }
-
-  .store-content {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    align-items: flex-start;
-  }
-
-  .entry-section {
-    flex: 2 1 320px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .entry-section h2,
-  .entry-section h3 {
-    margin: 0;
-    font-size: 24px;
-  }
-
-  .entry-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .entry-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    font-size: 16px;
-  }
-
-  .top-section {
-    flex: 1 1 240px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 20px;
-    border-radius: 16px;
-    border: 1px solid #dbe2ff;
-    background: #f3f4ff;
-  }
-
-  .top-card {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .top-card h2,
-  .top-card h3 {
-    margin: 0;
-    font-size: 24px;
-  }
-
-  .top-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .top-list li {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 16px;
-  }
-
-  .top-list .rank {
-    font-weight: 700;
-    color: #1d4ed8;
-    min-width: 20px;
-  }
-
-  .top-list .name {
-    font-weight: 600;
-  }
-
-  .top-list .score {
-    margin-left: auto;
-    color: #475569;
-  }
-
-  .top-qr-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 16px;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-  }
-
-  .top-qr-card img {
-    width: 160px;
-    max-width: 100%;
-    height: auto;
-  }
-
-  .qr-caption {
-    margin: 4px 0 0;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .qr-link {
-    font-size: 14px;
-    text-decoration: none;
-  }
-
-  .empty {
-    margin: 0;
-    color: #6b7280;
-  }
-
-  @media (max-width: 768px) {
-    .container {
-      padding: 32px 16px 48px;
-    }
-
-    .store-content {
-      flex-direction: column;
-    }
-
-    .top-section {
-      width: 100%;
-    }
-  }
-`;
-
-const COMMUNITY_CHAT_URL = "https://open.kakao.com/o/gALpMlRg";
-const COMMUNITY_QR_IMAGE_SRC =
-  "https://quickchart.io/qr?size=240&text=https%3A%2F%2Fopen.kakao.com%2Fo%2FgALpMlRg&centerImageUrl=https%3A%2F%2Fquickchart.io%2Fstatic%2Ficons%2Fchat.svg&centerImageSizeRatio=0.22";
 
 const PAGE_STYLES = `
   body {
@@ -716,7 +488,7 @@ function buildCommunityQrCard() {
   return `<div class="top-qr-card">
     <img src="${COMMUNITY_QR_IMAGE_SRC}" alt="강밤 오픈채팅 QR 코드" loading="lazy" />
     <p class="qr-caption">강밤 오픈채팅</p>
-    <a class="qr-link" href="${COMMUNITY_CHAT_URL}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_URL}</a>
+    <a class="qr-link" href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>
   </div>`;
 }
 
@@ -937,7 +709,7 @@ export async function renderStoreEntries(req, res, next) {
     <style>${PAGE_STYLES}</style>
   </head>
   <body>
-      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="${COMMUNITY_CHAT_URL}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_URL}</a>"</header>
+      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>"</header>
       <div class="container">
         <header class="page-header">
           <h1>전체 가게 엔트리</h1>
@@ -980,7 +752,7 @@ export async function renderStoreEntries(req, res, next) {
     <style>${PAGE_STYLES}</style>
   </head>
   <body>
-      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="${COMMUNITY_CHAT_URL}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_URL}</a>"</header>
+      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>"</header>
       <div class="container">
         <header class="page-header">
           <h1>${escapeHtml(store.storeName)} 엔트리</h1>

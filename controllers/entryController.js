@@ -1,232 +1,10 @@
 import { pool } from "../config/db.js";
 
-const COMMUNITY_CHAT_LINK = "https://open.kakao.com/o/gALpMlRg";
-const COMMUNITY_CONTACT_TEXT = `강남 하퍼 010-8031-9616`;
-const COMMUNITY_QR_IMAGE_SRC = "/images/community-qr.png";
+// 가장 위쪽 import 아래
+const COMMUNITY_CHAT_LINK = "https://open.kakao.com/o/gALpMlRg"; // 링크 표시/워터마크에 사용
+const COMMUNITY_CONTACT_TEXT = "강남 하퍼 010-8031-9616";         // 상단 굵은 빨간 문구
+const COMMUNITY_QR_IMAGE_SRC = "/images/community-qr.png";        // public 정적 경로(원하는 경로로)
 
-const PAGE_STYLES = `
-  body {
-    margin: 0;
-    font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
-    background: #f5f6fb;
-    color: #1f2937;
-  }
-
-  a {
-    color: #2563eb;
-  }
-
-  a:hover,
-  .community-link a:hover,
-  .back-link:hover,
-  .qr-link:hover {
-    text-decoration: underline;
-  }
-
-  .community-link {
-    padding: 12px 16px;
-    text-align: center;
-    background: #111827;
-    color: #f9fafb;
-    font-size: 14px;
-  }
-
-  .community-link a {
-    color: #facc15;
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .container {
-    max-width: 1040px;
-    margin: 0 auto;
-    padding: 40px 24px 64px;
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-  }
-
-  .page-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .page-header h1 {
-    margin: 0;
-    font-size: 32px;
-  }
-
-  .back-link {
-    font-weight: 500;
-    text-decoration: none;
-  }
-
-  .summary {
-    margin: 0;
-    color: #334155;
-  }
-
-  .store-section {
-    background: #ffffff;
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .store-header {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .store-header h2 {
-    margin: 0;
-    font-size: 28px;
-  }
-
-  .store-content {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    align-items: flex-start;
-  }
-
-  .entry-section {
-    flex: 2 1 320px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .entry-section h2,
-  .entry-section h3 {
-    margin: 0;
-    font-size: 24px;
-  }
-
-  .entry-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .entry-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    font-size: 16px;
-  }
-
-  .top-section {
-    flex: 1 1 240px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 20px;
-    border-radius: 16px;
-    border: 1px solid #dbe2ff;
-    background: #f3f4ff;
-  }
-
-  .top-card {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .top-card h2,
-  .top-card h3 {
-    margin: 0;
-    font-size: 24px;
-  }
-
-  .top-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .top-list li {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 16px;
-  }
-
-  .top-list .rank {
-    font-weight: 700;
-    color: #1d4ed8;
-    min-width: 20px;
-  }
-
-  .top-list .name {
-    font-weight: 600;
-  }
-
-  .top-list .score {
-    margin-left: auto;
-    color: #475569;
-  }
-
-  .top-qr-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 16px;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-  }
-
-  .top-qr-card img {
-    width: 160px;
-    max-width: 100%;
-    height: auto;
-  }
-
-  .qr-caption {
-    margin: 4px 0 0;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .qr-link {
-    font-size: 14px;
-    text-decoration: none;
-  }
-
-  .empty {
-    margin: 0;
-    color: #6b7280;
-  }
-
-  @media (max-width: 768px) {
-    .container {
-      padding: 32px 16px 48px;
-    }
-
-    .store-content {
-      flex-direction: column;
-    }
-
-    .top-section {
-      width: 100%;
-    }
-  }
-`;
 
 function escapeXml(value = "") {
   return value
@@ -246,8 +24,7 @@ function escapeHtml(value = "") {
     .replace(/'/g, "&#39;");
 }
 
-
-function computeCompositeLayout(lines, options = {}) {
+function buildCompositeSvg(lines, options = {}) {
   const {
     defaultFontSize = 24,
     defaultLineHeight = defaultFontSize * 1.4,
@@ -294,112 +71,37 @@ function computeCompositeLayout(lines, options = {}) {
     );
   });
 
-  const metrics = [];
-  let cursorY = padding;
-
-  normalizedLines.forEach((line, index) => {
+  let totalHeight = padding;
+  const metrics = normalizedLines.map((line, index) => {
     const fontSize = line.fontSize ?? defaultFontSize;
     const lineHeight = line.lineHeight ?? defaultLineHeight;
     const gapBefore = index === 0 ? 0 : line.gapBefore ?? 0;
     const dy = index === 0 ? 0 : gapBefore + lineHeight;
 
-    if (index === 0) {
-      cursorY += fontSize;
-    } else {
-      cursorY += dy;
-    }
+    totalHeight += index === 0 ? fontSize : dy;
 
-    const lineX = line.x ?? textStartX;
-
-    metrics.push({
+    return {
       ...line,
       fontSize,
       lineHeight,
       gapBefore,
       dy,
-      x: lineX,
-      y: cursorY,
-    });
+    };
   });
+  totalHeight += padding;
 
-  const totalHeight = cursorY + padding;
-
-  return {
-    options: {
-      defaultFontSize,
-      defaultLineHeight,
-      padding,
-      background,
-      textColor,
-      borderRadius,
-      borderColor,
-      borderWidth,
-      minWidth,
-      backgroundType,
-      notepadMarginOffset,
-      notepadTextIndent,
-      notepadLineSpacing,
-      notepadLineColor,
-      notepadMarginColor,
-      notepadMarginWidth,
-      notepadHoleRadius,
-      notepadHoleSpacing,
-      notepadHoleOffsetX,
-    },
-    normalizedLines,
-    metrics,
-    estimatedWidth,
-    totalHeight,
-    textStartX,
-    rightPadding,
-    isNotepad,
-  };
-}
-
-function renderCompositeSvg(layout, extras = {}) {
-  const {
-    metrics,
-    estimatedWidth,
-    totalHeight,
-    textStartX,
-    isNotepad,
-    options: {
-      defaultFontSize,
-      defaultLineHeight,
-      padding,
-      background,
-      textColor,
-      borderRadius,
-      borderColor,
-      borderWidth,
-      notepadLineSpacing,
-      notepadLineColor,
-      notepadHoleRadius,
-      notepadHoleSpacing,
-      notepadHoleOffsetX,
-      notepadMarginOffset,
-      notepadMarginColor,
-      notepadMarginWidth,
-    },
-  } = layout;
-
-  const { overlays = [], overlaysAboveText = [], defs = [] } = extras;
-
+  let textY = padding;
   const spans = metrics
     .map((line, index) => {
       const fontWeight = line.fontWeight ?? "normal";
       const content = escapeXml(line.text ?? "");
-      const fill = line.fill ? ` fill="${line.fill}"` : "";
-      const align = line.align ?? line.textAlign;
-      const computedAnchor = line.textAnchor ?? (align === "center" ? "middle" : align === "end" ? "end" : undefined);
-      const textAnchorAttr = computedAnchor ? ` text-anchor="${computedAnchor}"` : "";
-      const spanX = line.x ?? (align === "center" ? estimatedWidth / 2 : align === "end" ? estimatedWidth - padding : textStartX);
 
       if (index === 0) {
-        return `<tspan x="${spanX}" y="${line.y}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}${textAnchorAttr}>${content}</tspan>`;
+        textY += line.fontSize;
+        return `<tspan x="${textStartX}" y="${textY}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
       }
 
-      return `<tspan x="${spanX}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}${textAnchorAttr}>${content}</tspan>`;
+      return `<tspan x="${textStartX}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
     })
     .join("");
 
@@ -422,7 +124,7 @@ function renderCompositeSvg(layout, extras = {}) {
     const holeStartY = padding + notepadHoleRadius + 4;
     for (let y = holeStartY; y < totalHeight - padding; y += notepadHoleSpacing) {
       holeElements.push(
-        `<circle cx="${notepadHoleOffsetX}" cy="${y}" r="${notepadHoleRadius}" fill="#ffffff" stroke="#d0d0d0" stroke-width="1"/>`
+        `<circle cx="${notepadHoleOffsetX}" cy="${y}" r="${notepadHoleRadius}" fill="#ffffff" stroke="#d0d0d0" stroke-width="1" />`
       );
     }
 
@@ -441,40 +143,21 @@ function renderCompositeSvg(layout, extras = {}) {
       .join("\n    ");
   }
 
-  const defsContent = [
-    `<style>
-      text { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; fill: ${textColor}; }
-    </style>`,
-    ...defs,
-  ].join("\n");
-
-  const overlayContent = overlays.length
-    ? `\n  ${overlays.join("\n  ")}`
-    : "";
-
-  const overlayAboveContent = overlaysAboveText.length
-    ? `\n  ${overlaysAboveText.join("\n  ")}`
-    : "";
-
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${estimatedWidth}" height="${totalHeight}" role="img">
   <defs>
-    ${defsContent}
+    <style>
+      text { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; fill: ${textColor}; }
+    </style>
   </defs>
   ${baseBackground}
-  ${decorativeLayers}${overlayContent}
+  ${decorativeLayers}
   <text x="${textStartX}" y="${padding}" font-size="${defaultFontSize}" xml:space="preserve">
     ${spans}
-  </text>${overlayAboveContent}
+  </text>
 </svg>`;
 
-  return svg;
-}
-
-function buildCompositeSvg(lines, options = {}) {
-  const layout = computeCompositeLayout(lines, options);
-  const svg = renderCompositeSvg(layout);
-  return { svg, width: layout.estimatedWidth, height: layout.totalHeight };
+  return { svg, width: estimatedWidth, height: totalHeight };
 }
 
 function buildTodaySvg(text) {
@@ -560,9 +243,226 @@ function buildEntryRowsHtml(entries) {
       const names = row
         .map((entry) => `<span class="entry-name">${escapeHtml(entry.workerName ?? "")}</span>`)
         .join(" ");
-      return `<li class="entry-row">${names}</li>`;
+      return `<div class="entry-row">${names}</div>`;
     })
     .join("");
+}
+
+/** ===== 이미지 전용 레이아웃 측정 ===== */
+function computeCompositeLayout(lines, options = {}) {
+  const {
+    defaultFontSize = 24,
+    defaultLineHeight = defaultFontSize * 1.4,
+    padding = 24,
+    minWidth = 480,
+    backgroundType = "plain",
+    notepadMarginOffset = 68,
+    notepadTextIndent = 16,
+  } = options;
+
+  const isNotepad = backgroundType === "notepad";
+  const textStartX = isNotepad
+    ? padding + notepadMarginOffset + notepadTextIndent
+    : padding;
+  const rightPadding = isNotepad ? textStartX + 30 : padding;
+
+  const normalized = (Array.isArray(lines) ? lines : [lines]).map(l =>
+    typeof l === "string" ? { text: l } : { ...l }
+  );
+  if (!normalized.length) normalized.push({ text: "" });
+
+  let estimatedWidth = Math.max(minWidth, textStartX + rightPadding);
+  normalized.forEach((line) => {
+    const fontSize = line.fontSize ?? defaultFontSize;
+    const contentWidth = Math.ceil((line.text?.length || 0) * (fontSize * 0.65));
+    estimatedWidth = Math.max(estimatedWidth, textStartX + contentWidth + rightPadding);
+  });
+
+  const metrics = [];
+  let cursorY = padding;
+
+  normalized.forEach((line, idx) => {
+    const fontSize = line.fontSize ?? defaultFontSize;
+    const lineHeight = line.lineHeight ?? defaultLineHeight;
+    const gapBefore = idx === 0 ? 0 : line.gapBefore ?? 0;
+    const dy = idx === 0 ? 0 : gapBefore + lineHeight;
+
+    if (idx === 0) cursorY += fontSize;
+    else cursorY += dy;
+
+    metrics.push({
+      ...line,
+      fontSize,
+      lineHeight,
+      dy,
+      x: line.x,
+      y: cursorY,
+    });
+  });
+
+  const totalHeight = cursorY + padding;
+
+  return {
+    options,
+    normalizedLines: normalized,
+    metrics,
+    estimatedWidth,
+    totalHeight,
+    textStartX,
+    padding,
+    isNotepad,
+  };
+}
+
+/** ===== 이미지 전용 SVG 렌더(오버레이 포함) ===== */
+function renderCompositeSvg(layout, extras = {}) {
+  const {
+    metrics,
+    estimatedWidth,
+    totalHeight,
+    textStartX,
+    isNotepad,
+    padding,
+    options: {
+      defaultFontSize = 24,
+      defaultLineHeight = defaultFontSize * 1.4,
+      background = "#ffffff",
+      textColor = "#111111",
+      borderRadius = 24,
+      borderColor = "#dddddd",
+      borderWidth = 1,
+      notepadLineSpacing = defaultLineHeight,
+      notepadLineColor = "#e2e9ff",
+      notepadHoleRadius = 6,
+      notepadHoleSpacing = 110,
+      notepadHoleOffsetX = padding / 2,
+      notepadMarginOffset = 68,
+      notepadMarginColor = "#f16b6f",
+      notepadMarginWidth = 2,
+    },
+  } = layout;
+
+  const { overlays = [], overlaysAboveText = [], defs = [] } = extras;
+
+  const spans = metrics.map((line, index) => {
+    const fontWeight = line.fontWeight ?? "normal";
+    const fill = line.fill ? ` fill="${line.fill}"` : "";
+    const align = line.align ?? line.textAlign;
+    const anchor = line.textAnchor ?? (align === "center" ? "middle" : align === "end" ? "end" : undefined);
+    const anchorAttr = anchor ? ` text-anchor="${anchor}"` : "";
+    const x = line.x ?? (align === "center" ? estimatedWidth / 2 : align === "end" ? estimatedWidth - padding : textStartX);
+    const safe = escapeXml(line.text ?? "");
+    if (index === 0) {
+      return `<tspan x="${x}" y="${line.y}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}${anchorAttr}>${safe}</tspan>`;
+    }
+    return `<tspan x="${x}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}${anchorAttr}>${safe}</tspan>`;
+  }).join("");
+
+  const baseBg = `<rect x="0" y="0" rx="${borderRadius}" ry="${borderRadius}" width="${estimatedWidth}" height="${totalHeight}" fill="${background}" stroke="${borderColor}" stroke-width="${borderWidth}" />`;
+
+  // 공책 배경(원본과 동일 룩 유지)
+  let deco = "";
+  if (isNotepad) {
+    const lines = [];
+    const startY = padding + defaultLineHeight;
+    const maxY = totalHeight - padding;
+    for (let y = startY; y <= maxY; y += notepadLineSpacing) {
+      lines.push(`<line x1="${padding}" y1="${y}" x2="${estimatedWidth - padding}" y2="${y}" stroke="${notepadLineColor}" stroke-width="1" />`);
+    }
+    const holes = [];
+    const holeStartY = padding + notepadHoleRadius + 4;
+    for (let y = holeStartY; y < totalHeight - padding; y += notepadHoleSpacing) {
+      holes.push(`<circle cx="${notepadHoleOffsetX}" cy="${y}" r="${notepadHoleRadius}" fill="#ffffff" stroke="#d0d0d0" stroke-width="1"/>`);
+    }
+    const marginX = padding + notepadMarginOffset;
+    const margin = notepadMarginWidth > 0
+      ? `<line x1="${marginX}" y1="${padding}" x2="${marginX}" y2="${totalHeight - padding}" stroke="${notepadMarginColor}" stroke-width="${notepadMarginWidth}" />`
+      : "";
+    deco = [...lines, margin, ...holes].filter(Boolean).join("\n");
+  }
+
+  const defsContent = [
+    `<style>text{font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;fill:${textColor};}</style>`,
+    ...defs,
+  ].join("\n");
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${estimatedWidth}" height="${totalHeight}" role="img">
+  <defs>${defsContent}</defs>
+  ${baseBg}
+  ${deco}
+  ${overlays.join("\n")}
+  <text x="${textStartX}" y="${padding}" font-size="${defaultFontSize}" xml:space="preserve">
+    ${spans}
+  </text>
+  ${overlaysAboveText.join("\n")}
+</svg>`;
+  return svg;
+}
+
+/** ===== 워터마크/상단문구/QR 오버레이 정의 ===== */
+function buildStoreImageDecorations(layout, top5 = []) {
+  const defs = [];
+  const overlays = [];
+  const overlaysAboveText = [];
+
+  // 대각 반복 워터마크 (링크+연락처)
+  const patId = "wmPattern";
+  const wmText = `${COMMUNITY_CONTACT_TEXT}`;
+  const unitW = Math.max(560, wmText.length * 28) + 350;
+  const unitH = 220;
+  defs.push(`
+    <pattern id="${patId}" patternUnits="userSpaceOnUse" width="${unitW}" height="${unitH}" patternTransform="rotate(-24)">
+      <text x="20" y="80" font-size="40" font-weight="700" fill="#1d4ed8" opacity="0.45">${escapeXml(wmText)}</text>
+      <text x="${unitW/2}" y="${unitH-40}" font-size="40" font-weight="700" fill="#1d4ed8" opacity="0.45">${escapeXml(wmText)}</text>
+    </pattern>
+  `);
+  overlays.push(`<rect x="0" y="0" width="${layout.estimatedWidth}" height="${layout.totalHeight}" fill="url(#${patId})" opacity="0.16"/>`);
+
+  // 상단 굵은 빨간 문구
+  const x = layout.textStartX + 30;
+  const y = Math.max(36, layout.padding - 8 + 50);
+  overlays.push(`
+    <text x="${x}" y="${y}" font-size="50" font-weight="700" fill="#b91c1c">${escapeXml(COMMUNITY_CONTACT_TEXT)}</text>
+  `);
+
+  // QR 카드: “추천 아가씨 TOP 5” 오른쪽 여백
+  const headingIdx = layout.normalizedLines.findIndex(l => l.text === "추천 아가씨 TOP 5");
+  const qrSize = 208, pad = 20;
+  let cardW = qrSize + pad*2, cardH = qrSize + pad*2 + 96;
+  let cardY = layout.padding * 1.5;
+  if (headingIdx !== -1 && layout.metrics[headingIdx]) {
+    const h = layout.metrics[headingIdx];
+    cardY = Math.max(layout.padding, h.y - h.fontSize - 32);
+    // 아래 줄 길이에 따라 높이 늘림
+    const lastIdx = Math.min(layout.metrics.length - 1, headingIdx + Math.max(top5.length, 0));
+    const last = layout.metrics[lastIdx];
+    if (last) {
+      const bottom = last.y + (last.lineHeight ?? 36) + 32;
+      cardH = Math.max(cardH, bottom - cardY);
+    }
+  }
+  const textWidthGuess = 420;
+  let cardX = layout.textStartX + textWidthGuess + 16;
+  const rightX = layout.estimatedWidth - layout.padding - cardW;
+  if (rightX > cardX) cardX = rightX;
+
+  // 필요하면 캔버스 늘림
+  layout.estimatedWidth = Math.max(layout.estimatedWidth, cardX + cardW + layout.padding);
+  layout.totalHeight   = Math.max(layout.totalHeight,   cardY + cardH + layout.padding);
+
+  overlaysAboveText.push(`
+    <g transform="translate(${cardX}, ${cardY}) rotate(-2.5)">
+      <rect width="${cardW}" height="${cardH}" rx="20" ry="20" fill="#fef3c7" stroke="#fcd34d" stroke-width="1.5"/>
+      <rect x="${(cardW - Math.max(120, cardW*0.6))/2}" y="-12" width="${Math.max(120, cardW*0.6)}" height="24" rx="8" fill="#fde68a" opacity="0.9"/>
+      <image href="${COMMUNITY_QR_IMAGE_SRC}" x="${pad}" y="${pad}" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid meet"/>
+      <text x="${cardW/2}" y="${pad + qrSize + 20}" font-size="14" font-weight="600" text-anchor="middle" fill="#92400e">스캔하고 강밤톡방 참여</text>
+      <text x="${cardW/2}" y="${pad + qrSize + 46}" font-size="20" font-weight="700" text-anchor="middle" fill="#b45309">강밤 오픈채팅</text>
+      <text x="${cardW/2}" y="${pad + qrSize + 70}" font-size="13" text-anchor="middle" fill="#7c2d12">${escapeXml(COMMUNITY_CHAT_LINK)}</text>
+    </g>
+  `);
+
+  return { defs, overlays, overlaysAboveText };
 }
 
 function buildTop5Html(top5) {
@@ -570,53 +470,21 @@ function buildTop5Html(top5) {
     .map((entry) => {
       const name = escapeHtml(entry.workerName ?? "");
       const total = entry.total - 6 ?? 0;
-      return `<li><span class="name">${name}</span><span class="score"> - 합계 ${total}</span></li>`;
+      return `<li><span class="name"> ${name}</span><span class="score"> - 합계 ${total}</span></li>`;
     })
     .join("");
-}
-
-function buildCommunityQrCard() {
-  return `<div class="top-qr-card">
-    <img src="${COMMUNITY_QR_IMAGE_SRC}" alt="강밤 오픈채팅 QR 코드" loading="lazy" />
-    <p class="qr-caption">강밤 오픈채팅</p>
-    <a class="qr-link" href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>
-  </div>`;
-}
-
-function buildTopSection(top5, options = {}) {
-  const { headingTag = "h3", containerTag = "div" } = options;
-  const normalizedHeading = headingTag === "h2" ? "h2" : "h3";
-  const normalizedContainer = containerTag === "section" ? "section" : "div";
-  const hasTop5 = Array.isArray(top5) && top5.length > 0;
-  const listMarkup = hasTop5
-    ? `<ol class="top-list">${buildTop5Html(top5)}</ol>`
-    : `<p class="empty">추천 데이터가 없습니다.</p>`;
-
-  return `<${normalizedContainer} class="top-section">
-    <div class="top-card">
-      <${normalizedHeading}>추천 아가씨 TOP 5</${normalizedHeading}>
-      ${listMarkup}
-    </div>
-    ${buildCommunityQrCard()}
-  </${normalizedContainer}>`;
 }
 
 function buildStoreEntryLines(store, entries, top5) {
   const totalCount = entries.length;
 
   const lines = [
-    {
-      text: COMMUNITY_CONTACT_TEXT,
-      fontSize: 60,
-      fontWeight: "800",
-      fill: "#b91c1c",
-      gapBefore: 100,
-    },
+    { text: "", fontSize: 120 },
     {
       text: `${store.storeName} 엔트리`,
       fontSize: 44,
       fontWeight: "700",
-      gapBefore: 20,
+      gapBefore: 80, // ← 필요시 60~120 사이로 조절
     },
     {
       text: `총 출근인원: ${totalCount}명`,
@@ -667,139 +535,6 @@ function buildStoreEntryLines(store, entries, top5) {
   }
 
   return lines;
-}
-
-function buildStoreImageDecorations(layout, top5 = []) {
-  const safeTop5 = Array.isArray(top5) ? top5 : [];
-  const defs = [];
-  const overlays = [];
-  const overlaysAboveText = [];
-
-  const watermarkId = "communityWatermarkPattern";
-  const watermarkText = `${COMMUNITY_CONTACT_TEXT}   `;
-  const watermarkCharWidth = 50;
-  const watermarkPatternWidth = Math.max(560, watermarkText.length * watermarkCharWidth);
-  const watermarkPatternHeight = 260;
-
-  defs.push(`
-    <pattern id="${watermarkId}" patternUnits="userSpaceOnUse" width="${watermarkPatternWidth}" height="${watermarkPatternHeight}" patternTransform="rotate(-24)">
-      <text x="24" y="90" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.4">${escapeXml(
-        watermarkText
-      )}</text>
-      <text x="${watermarkPatternWidth / 2}" y="${watermarkPatternHeight - 40}" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.4">${escapeXml(
-        watermarkText
-      )}</text>
-    </pattern>
-  `);
-
-  defs.push(`
-    <filter id="qrShadow" x="-20%" y="-20%" width="150%" height="150%">
-      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#f59e0b" flood-opacity="0.25" />
-    </filter>
-  `);
-
-  const qrCard = buildStoreQrCard(layout, safeTop5);
-  if (qrCard) {
-    overlaysAboveText.push(qrCard);
-  }
-
-  overlays.push(
-    `<rect x="0" y="0" width="${layout.estimatedWidth}" height="${layout.totalHeight}" fill="url(#${watermarkId})" opacity="0.15" />`
-  );
-
-  return { overlays, overlaysAboveText, defs };
-}
-
-function buildStoreQrCard(layout, top5) {
-  const { metrics, normalizedLines, options } = layout;
-  const headingIndex = normalizedLines.findIndex(
-    (line) => line.text === "추천 아가씨 TOP 5"
-  );
-
-  const qrSize = 208;
-  const cardPadding = 20;
-  let cardHeight = cardPadding * 2 + qrSize + 96;
-  const cardWidth = qrSize + cardPadding * 2;
-
-  let cardY = options.padding * 1.5;
-  if (headingIndex !== -1) {
-    const headingLine = metrics[headingIndex];
-    if (headingLine) {
-      cardY = Math.max(
-        options.padding,
-        headingLine.y - headingLine.fontSize - 32
-      );
-    }
-  }
-
-  if (headingIndex !== -1) {
-    const lastIndex = Math.min(
-      metrics.length - 1,
-      headingIndex + Math.max(top5.length, 0)
-    );
-    const lastLine = metrics[lastIndex];
-    if (lastLine) {
-      const bottomCandidate =
-        lastLine.y + (lastLine.lineHeight ?? options.defaultLineHeight) + 32;
-      const desiredHeight = bottomCandidate - cardY;
-      if (desiredHeight > cardHeight) {
-        cardHeight = desiredHeight;
-      }
-    }
-  }
-
-  let topWidth = 0;
-  if (headingIndex !== -1) {
-    const sliceEnd = Math.min(
-      normalizedLines.length,
-      headingIndex + 1 + Math.max(top5.length, 0)
-    );
-    const topLines = normalizedLines.slice(headingIndex, sliceEnd);
-    topWidth = topLines.reduce((max, line) => {
-      const fontSize = line.fontSize ?? options.defaultFontSize;
-      const width = Math.ceil((line.text?.length || 0) * (fontSize * 0.64));
-      return Math.max(max, width);
-    }, 0);
-  }
-
-  const desiredX = layout.textStartX + Math.max(topWidth, 360) + 16;
-  let cardX = desiredX;
-  const fallbackX = layout.estimatedWidth - options.padding - cardWidth;
-  if (fallbackX > cardX) {
-    cardX = fallbackX;
-  }
-
-  const requiredWidth = cardX + cardWidth + options.padding;
-  if (requiredWidth > layout.estimatedWidth) {
-    layout.estimatedWidth = requiredWidth;
-  }
-
-  const requiredHeight = cardY + cardHeight + options.padding;
-  if (requiredHeight > layout.totalHeight) {
-    layout.totalHeight = requiredHeight;
-  }
-
-  const infoY = cardPadding + qrSize + 20;
-  const titleY = infoY + 26;
-  const linkY = titleY + 24;
-  const infoText = "스캔하고 강밤톡방 참여";
-
-  const stickyRotation = -2.5;
-  const tapeWidth = Math.max(120, cardWidth * 0.6);
-  const tapeHeight = 24;
-  const tapeX = (cardWidth - tapeWidth) / 2;
-  const tapeY = -tapeHeight / 2;
-
-  return `<g transform="translate(${cardX}, ${cardY})">
-    <g transform="rotate(${stickyRotation} ${cardWidth / 2} ${cardHeight / 2})">
-      <rect width="${cardWidth}" height="${cardHeight}" rx="20" ry="20" fill="#fef3c7" stroke="#fcd34d" stroke-width="1.5" filter="url(#qrShadow)" />
-      <rect x="${tapeX}" y="${tapeY}" width="${tapeWidth}" height="${tapeHeight}" rx="8" fill="#fde68a" opacity="0.9" />
-      <image href="${COMMUNITY_QR_IMAGE_SRC}" x="${cardPadding}" y="${cardPadding}" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid meet" />
-      <text x="${cardWidth / 2}" y="${infoY}" font-size="14" font-weight="600" text-anchor="middle" fill="#92400e">${escapeXml(infoText)}</text>
-      <text x="${cardWidth / 2}" y="${titleY}" font-size="20" font-weight="700" text-anchor="middle" fill="#b45309">${escapeXml("강밤 오픈채팅")}</text>
-      <text x="${cardWidth / 2}" y="${linkY}" font-size="13" text-anchor="middle" fill="#7c2d12" lengthAdjust="spacingAndGlyphs" textLength="${cardWidth - cardPadding * 2}">${escapeXml(COMMUNITY_CHAT_LINK)}</text>
-    </g>
-  </g>`;
 }
 
 function buildAllStoreEntryLines(storeDataList) {
@@ -915,10 +650,9 @@ export async function renderStoreEntries(req, res, next) {
           const entryListMarkup = entries.length
             ? `<ul class="entry-list">${buildEntryRowsHtml(entries)}</ul>`
             : `<p class="empty">엔트리가 없습니다.</p>`;
-          const topSectionMarkup = buildTopSection(top5, {
-            headingTag: "h3",
-            containerTag: "div",
-          });
+          const topListMarkup = top5.length
+            ? `<ol class="top-list">${buildTop5Html(top5)}</ol>`
+            : `<p class="empty">추천 데이터가 없습니다.</p>`;
 
           return `<section class="store-section">
             <header class="store-header">
@@ -930,7 +664,10 @@ export async function renderStoreEntries(req, res, next) {
                 <h3>엔트리 목록</h3>
                 ${entryListMarkup}
               </div>
-              ${topSectionMarkup}
+              <div class="top-section">
+                <h3>추천 아가씨 TOP 5</h3>
+                ${topListMarkup}
+              </div>
             </div>
           </section>`;
         })
@@ -942,10 +679,10 @@ export async function renderStoreEntries(req, res, next) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>전체 가게 엔트리</title>
-    <style>${PAGE_STYLES}</style>
+
   </head>
   <body>
-      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>"</header>
+      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">https://open.kakao.com/o/gALpMlRg</a>"</header>
       <div class="container">
         <header class="page-header">
           <h1>전체 가게 엔트리</h1>
@@ -970,14 +707,9 @@ export async function renderStoreEntries(req, res, next) {
     const entryListMarkup = entries.length
       ? `<ul class="entry-list">${buildEntryRowsHtml(entries)}</ul>`
       : `<p class="empty">엔트리가 없습니다.</p>`;
-    const entrySectionMarkup = `<section class="entry-section">
-        <h2>엔트리 목록</h2>
-        ${entryListMarkup}
-      </section>`;
-    const topSectionMarkup = buildTopSection(top5, {
-      headingTag: "h2",
-      containerTag: "section",
-    });
+    const topListMarkup = top5.length
+      ? `<ol class="top-list">${buildTop5Html(top5)}</ol>`
+      : `<p class="empty">추천 데이터가 없습니다.</p>`;
 
     const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -985,22 +717,24 @@ export async function renderStoreEntries(req, res, next) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(store.storeName)} 엔트리</title>
-    <style>${PAGE_STYLES}</style>
+
   </head>
   <body>
-      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>"</header>
+      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">https://open.kakao.com/o/gALpMlRg</a>"</header>
       <div class="container">
         <header class="page-header">
           <h1>${escapeHtml(store.storeName)} 엔트리</h1>
           <a class="back-link" href="/entry/home">← 가게 목록으로</a>
         </header>
         <p class="summary">총 출근인원: <strong>${totalCount}</strong>명</p>
-        <div class="store-section single-store">
-          <div class="store-content single">
-            ${entrySectionMarkup}
-            ${topSectionMarkup}
-          </div>
-        </div>
+      <section>
+        <h2>엔트리 목록</h2>
+        ${entryListMarkup}
+      </section>
+      <section>
+        <h2>추천 아가씨 TOP 5</h2>
+          ${topListMarkup}
+        </section>
       </div>
     </body>
   </html>`;
@@ -1014,43 +748,44 @@ export async function renderStoreEntries(req, res, next) {
 export async function renderStoreEntryImage(req, res, next) {
   try {
     const { storeNo } = req.params;
-
     const storeId = Number(storeNo);
 
     if (storeId === 0) {
+      // 전체 매장
       const storeDataList = await fetchAllStoreEntries();
-      if (!storeDataList.length)
-        return res.status(404).send("가게를 찾을 수 없습니다.");
+      if (!storeDataList.length) return res.status(404).send("가게를 찾을 수 없습니다.");
 
       const lines = buildAllStoreEntryLines(storeDataList);
-      const { svg } = buildCompositeSvg(lines, STORE_IMAGE_OPTIONS);
+      const layout = computeCompositeLayout(lines, STORE_IMAGE_OPTIONS);
+      const deco = buildStoreImageDecorations(layout); // top5 없음
+      const svg = renderCompositeSvg(layout, deco);
 
       res.set("Cache-Control", "no-store");
       res.type("image/svg+xml").send(svg);
-      return;
+    } else {
+      // 단일 매장
+      const data = await fetchSingleStoreEntries(storeNo);
+      if (!data) return res.status(404).send("가게를 찾을 수 없습니다.");
+
+      const lines = buildStoreEntryLines(data.store, data.entries, data.top5);
+      const layout = computeCompositeLayout(lines, STORE_IMAGE_OPTIONS);
+      const deco = buildStoreImageDecorations(layout, data.top5);
+      const svg = renderCompositeSvg(layout, deco);
+
+      res.set("Cache-Control", "no-store");
+      res.type("image/svg+xml").send(svg);
     }
 
-    const data = await fetchSingleStoreEntries(storeNo);
-    if (!data) return res.status(404).send("가게를 찾을 수 없습니다.");
-
-    const lines = buildStoreEntryLines(data.store, data.entries, data.top5);
-    const layout = computeCompositeLayout(lines, STORE_IMAGE_OPTIONS);
-    const decorations = buildStoreImageDecorations(layout, data.top5);
-    const svg = renderCompositeSvg(layout, decorations);
-
-    res.set("Cache-Control", "no-store");
-    res.type("image/svg+xml").send(svg);
-
-    //조회
+    // 접근 로깅 (선택)
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const referer = req.get('referer') || '직접 요청';
     const ua = req.get('user-agent') || '알 수 없음';
-
-    console.log(`[IMAGE ACCESS] IP: ${ip}, REFERER: ${referer}, UA: ${ua}`);
+    console.log(`[ENTRYIMAGE ACCESS] IP:${ip} REF:${referer} UA:${ua}`);
   } catch (err) {
     next(err);
   }
 }
+
 
 function getAdjustedSeoulDate(now = new Date()) {
   const timeZone = "Asia/Seoul";

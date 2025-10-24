@@ -1,5 +1,4 @@
 import { pool } from "../config/db.js";
-import { getWatermarkOptions } from "../utils/watermark.js";
 
 function escapeXml(value = "") {
   return value
@@ -40,7 +39,6 @@ function buildCompositeSvg(lines, options = {}) {
     notepadHoleRadius = 6,
     notepadHoleSpacing = 110,
     notepadHoleOffsetX = padding / 2,
-    watermark = null,
   } = options;
 
   const isNotepad = backgroundType === "notepad";
@@ -67,14 +65,14 @@ function buildCompositeSvg(lines, options = {}) {
     );
   });
 
-  let contentHeight = padding;
+  let totalHeight = padding;
   const metrics = normalizedLines.map((line, index) => {
     const fontSize = line.fontSize ?? defaultFontSize;
     const lineHeight = line.lineHeight ?? defaultLineHeight;
     const gapBefore = index === 0 ? 0 : line.gapBefore ?? 0;
     const dy = index === 0 ? 0 : gapBefore + lineHeight;
 
-    contentHeight += index === 0 ? fontSize : dy;
+    totalHeight += index === 0 ? fontSize : dy;
 
     return {
       ...line,
@@ -84,7 +82,7 @@ function buildCompositeSvg(lines, options = {}) {
       dy,
     };
   });
-  contentHeight += padding;
+  totalHeight += padding;
 
   let textY = padding;
   const spans = metrics
@@ -101,12 +99,14 @@ function buildCompositeSvg(lines, options = {}) {
     })
     .join("");
 
+  const baseBackground = `<rect x="0" y="0" rx="${borderRadius}" ry="${borderRadius}" width="${estimatedWidth}" height="${totalHeight}" fill="${background}" stroke="${borderColor}" stroke-width="${borderWidth}" />`;
+
   let decorativeLayers = "";
 
   if (isNotepad) {
     const horizontalLines = [];
     const startY = padding + defaultLineHeight;
-    const maxY = contentHeight - padding;
+    const maxY = totalHeight - padding;
 
     for (let y = startY; y <= maxY; y += notepadLineSpacing) {
       horizontalLines.push(
@@ -116,16 +116,16 @@ function buildCompositeSvg(lines, options = {}) {
 
     const holeElements = [];
     const holeStartY = padding + notepadHoleRadius + 4;
-    for (let y = holeStartY; y < contentHeight - padding; y += notepadHoleSpacing) {
+    for (let y = holeStartY; y < totalHeight - padding; y += notepadHoleSpacing) {
       holeElements.push(
-        `<circle cx="${notepadHoleOffsetX}" cy="${y}" r="${notepadHoleRadius}" fill="#ffffff" stroke="#d0d0d0" stroke-width="1"/>`
+        `<circle cx="${notepadHoleOffsetX}" cy="${y}" r="${notepadHoleRadius}" fill="#ffffff" stroke="#d0d0d0" stroke-width="1" />`
       );
     }
 
     const marginX = padding + notepadMarginOffset;
     const marginLayer =
       notepadMarginWidth > 0
-        ? `<line x1="${marginX}" y1="${padding}" x2="${marginX}" y2="${contentHeight - padding}" stroke="${notepadMarginColor}" stroke-width="${notepadMarginWidth}" />`
+        ? `<line x1="${marginX}" y1="${padding}" x2="${marginX}" y2="${totalHeight - padding}" stroke="${notepadMarginColor}" stroke-width="${notepadMarginWidth}" />`
         : "";
 
     decorativeLayers = [
@@ -136,96 +136,6 @@ function buildCompositeSvg(lines, options = {}) {
       .filter(Boolean)
       .join("\n    ");
   }
-
-  let watermarkHeight = 0;
-  let watermarkMarkup = "";
-
-  if (watermark) {
-    const {
-      qrDataUri,
-      qrSize = 160,
-      padding: watermarkPadding = padding,
-      gap = 24,
-      phone = "",
-      phoneFontSize = defaultFontSize * 2,
-      phoneColor = textColor,
-      linkUrl = "",
-      linkLabel = "",
-      linkFontSize = defaultFontSize,
-      linkColor = textColor,
-      caption = "",
-      captionFontSize = defaultFontSize,
-      captionColor = textColor,
-      backgroundColor: watermarkBg = "#ffffff",
-      backgroundOpacity = 0.94,
-      overlayText = "",
-      overlayOpacity = 0.1,
-    } = watermark;
-
-    const escapedPhone = escapeXml(phone);
-    const escapedLabel = escapeXml(linkLabel);
-    const escapedCaption = escapeXml(caption);
-    const escapedOverlay = escapeXml(overlayText);
-
-    let textHeight = 0;
-    if (phone) textHeight += phoneFontSize;
-    if (linkLabel) textHeight += (textHeight ? gap / 2 : 0) + linkFontSize;
-    if (caption) textHeight += (textHeight ? gap / 2 : 0) + captionFontSize;
-
-    const blockHeight = Math.max(qrSize, textHeight);
-    watermarkHeight = blockHeight + watermarkPadding * 2;
-
-    const baseY = contentHeight;
-    const qrX = padding;
-    const qrY = baseY + watermarkPadding + Math.max(0, (blockHeight - qrSize) / 2);
-    const textStart = qrDataUri ? qrX + qrSize + gap : padding + gap;
-
-    let currentTextY = baseY + watermarkPadding;
-    const textElements = [];
-
-    if (phone) {
-      currentTextY += phoneFontSize;
-      textElements.push(
-        `<text x="${textStart}" y="${currentTextY}" font-size="${phoneFontSize}" font-weight="700" fill="${phoneColor}">${escapedPhone}</text>`
-      );
-    }
-
-    if (linkLabel) {
-      currentTextY += phone ? gap / 2 + linkFontSize : linkFontSize;
-      const linkTarget = escapeXml(linkUrl);
-      textElements.push(
-        `<a href="${linkTarget}" target="_blank"><text x="${textStart}" y="${currentTextY}" font-size="${linkFontSize}" font-weight="600" fill="${linkColor}">${escapedLabel}</text></a>`
-      );
-    }
-
-    if (caption) {
-      currentTextY += linkLabel ? gap / 2 + captionFontSize : captionFontSize;
-      textElements.push(
-        `<text x="${textStart}" y="${currentTextY}" font-size="${captionFontSize}" fill="${captionColor}">${escapedCaption}</text>`
-      );
-    }
-
-    const overlayLayer = overlayText
-      ? `<text x="${estimatedWidth / 2}" y="${baseY + watermarkHeight / 2}" font-size="${phoneFontSize}" fill="${phoneColor}" opacity="${overlayOpacity}" text-anchor="middle" transform="rotate(-24 ${estimatedWidth / 2} ${baseY + watermarkHeight / 2})">${escapedOverlay}</text>`
-      : "";
-
-    const qrElement = qrDataUri
-      ? `<image href="${qrDataUri}" x="${qrX}" y="${qrY}" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid meet" />`
-      : "";
-
-    const textElementMarkup = textElements.join("\n    ");
-
-    watermarkMarkup = `
-  <g class="watermark" transform="translate(0, ${baseY})">
-    <rect x="0" y="0" width="${estimatedWidth}" height="${watermarkHeight}" fill="${watermarkBg}" opacity="${backgroundOpacity}" />
-    ${overlayLayer}
-    ${qrElement}
-    ${textElementMarkup}
-  </g>`;
-  }
-
-  const totalHeight = contentHeight + watermarkHeight;
-  const baseBackground = `<rect x="0" y="0" rx="${borderRadius}" ry="${borderRadius}" width="${estimatedWidth}" height="${totalHeight}" fill="${background}" stroke="${borderColor}" stroke-width="${borderWidth}" />`;
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${estimatedWidth}" height="${totalHeight}" role="img">
@@ -239,11 +149,11 @@ function buildCompositeSvg(lines, options = {}) {
   <text x="${textStartX}" y="${padding}" font-size="${defaultFontSize}" xml:space="preserve">
     ${spans}
   </text>
-  ${watermarkMarkup}
 </svg>`;
 
   return { svg, width: estimatedWidth, height: totalHeight };
 }
+
 function buildTodaySvg(text) {
   const width = 800;
   const height = 400;
@@ -618,10 +528,7 @@ export async function renderStoreEntryImage(req, res, next) {
         return res.status(404).send("가게를 찾을 수 없습니다.");
 
       const lines = buildAllStoreEntryLines(storeDataList);
-      const { svg } = buildCompositeSvg(lines, {
-        ...STORE_IMAGE_OPTIONS,
-        watermark: getWatermarkOptions(),
-      });
+      const { svg } = buildCompositeSvg(lines, STORE_IMAGE_OPTIONS);
 
       res.set("Cache-Control", "no-store");
       res.type("image/svg+xml").send(svg);
@@ -632,10 +539,7 @@ export async function renderStoreEntryImage(req, res, next) {
     if (!data) return res.status(404).send("가게를 찾을 수 없습니다.");
 
     const lines = buildStoreEntryLines(data.store, data.entries, data.top5);
-    const { svg } = buildCompositeSvg(lines, {
-      ...STORE_IMAGE_OPTIONS,
-      watermark: getWatermarkOptions(),
-    });
+    const { svg } = buildCompositeSvg(lines, STORE_IMAGE_OPTIONS);
 
     res.set("Cache-Control", "no-store");
     res.type("image/svg+xml").send(svg);

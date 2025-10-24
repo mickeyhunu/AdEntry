@@ -1,4 +1,237 @@
 import { pool } from "../config/db.js";
+import { createQrSvgDataUri } from "../utils/communityQr.js";
+
+const COMMUNITY_CHAT_LINK = "https://open.kakao.com/o/gALpMlRg";
+const COMMUNITY_CONTACT_TEXT = `강밤톡방 연락처 : ${COMMUNITY_CHAT_LINK}`;
+const COMMUNITY_QR_IMAGE_SRC = createQrSvgDataUri(COMMUNITY_CHAT_LINK, {
+  margin: 2,
+  darkColor: "#111827",
+  lightColor: "#ffffff",
+});
+
+const PAGE_STYLES = `
+  body {
+    margin: 0;
+    font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    background: #f5f6fb;
+    color: #1f2937;
+  }
+
+  a {
+    color: #2563eb;
+  }
+
+  a:hover,
+  .community-link a:hover,
+  .back-link:hover,
+  .qr-link:hover {
+    text-decoration: underline;
+  }
+
+  .community-link {
+    padding: 12px 16px;
+    text-align: center;
+    background: #111827;
+    color: #f9fafb;
+    font-size: 14px;
+  }
+
+  .community-link a {
+    color: #facc15;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .container {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 40px 24px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    font-size: 32px;
+  }
+
+  .back-link {
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .summary {
+    margin: 0;
+    color: #334155;
+  }
+
+  .store-section {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .store-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .store-header h2 {
+    margin: 0;
+    font-size: 28px;
+  }
+
+  .store-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  .entry-section {
+    flex: 2 1 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .entry-section h2,
+  .entry-section h3 {
+    margin: 0;
+    font-size: 24px;
+  }
+
+  .entry-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .entry-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-size: 16px;
+  }
+
+  .top-section {
+    flex: 1 1 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid #dbe2ff;
+    background: #f3f4ff;
+  }
+
+  .top-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .top-card h2,
+  .top-card h3 {
+    margin: 0;
+    font-size: 24px;
+  }
+
+  .top-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .top-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+  }
+
+  .top-list .rank {
+    font-weight: 700;
+    color: #1d4ed8;
+    min-width: 20px;
+  }
+
+  .top-list .name {
+    font-weight: 600;
+  }
+
+  .top-list .score {
+    margin-left: auto;
+    color: #475569;
+  }
+
+  .top-qr-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+  }
+
+  .top-qr-card img {
+    width: 160px;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .qr-caption {
+    margin: 4px 0 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .qr-link {
+    font-size: 14px;
+    text-decoration: none;
+  }
+
+  .empty {
+    margin: 0;
+    color: #6b7280;
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      padding: 32px 16px 48px;
+    }
+
+    .store-content {
+      flex-direction: column;
+    }
+
+    .top-section {
+      width: 100%;
+    }
+  }
+`;
 
 function escapeXml(value = "") {
   return value
@@ -18,7 +251,8 @@ function escapeHtml(value = "") {
     .replace(/'/g, "&#39;");
 }
 
-function buildCompositeSvg(lines, options = {}) {
+
+function computeCompositeLayout(lines, options = {}) {
   const {
     defaultFontSize = 24,
     defaultLineHeight = defaultFontSize * 1.4,
@@ -65,37 +299,106 @@ function buildCompositeSvg(lines, options = {}) {
     );
   });
 
-  let totalHeight = padding;
-  const metrics = normalizedLines.map((line, index) => {
+  const metrics = [];
+  let cursorY = padding;
+
+  normalizedLines.forEach((line, index) => {
     const fontSize = line.fontSize ?? defaultFontSize;
     const lineHeight = line.lineHeight ?? defaultLineHeight;
     const gapBefore = index === 0 ? 0 : line.gapBefore ?? 0;
     const dy = index === 0 ? 0 : gapBefore + lineHeight;
 
-    totalHeight += index === 0 ? fontSize : dy;
+    if (index === 0) {
+      cursorY += fontSize;
+    } else {
+      cursorY += dy;
+    }
 
-    return {
+    metrics.push({
       ...line,
       fontSize,
       lineHeight,
       gapBefore,
       dy,
-    };
+      x: textStartX,
+      y: cursorY,
+    });
   });
-  totalHeight += padding;
 
-  let textY = padding;
+  const totalHeight = cursorY + padding;
+
+  return {
+    options: {
+      defaultFontSize,
+      defaultLineHeight,
+      padding,
+      background,
+      textColor,
+      borderRadius,
+      borderColor,
+      borderWidth,
+      minWidth,
+      backgroundType,
+      notepadMarginOffset,
+      notepadTextIndent,
+      notepadLineSpacing,
+      notepadLineColor,
+      notepadMarginColor,
+      notepadMarginWidth,
+      notepadHoleRadius,
+      notepadHoleSpacing,
+      notepadHoleOffsetX,
+    },
+    normalizedLines,
+    metrics,
+    estimatedWidth,
+    totalHeight,
+    textStartX,
+    rightPadding,
+    isNotepad,
+  };
+}
+
+function renderCompositeSvg(layout, extras = {}) {
+  const {
+    metrics,
+    estimatedWidth,
+    totalHeight,
+    textStartX,
+    isNotepad,
+    options: {
+      defaultFontSize,
+      defaultLineHeight,
+      padding,
+      background,
+      textColor,
+      borderRadius,
+      borderColor,
+      borderWidth,
+      notepadLineSpacing,
+      notepadLineColor,
+      notepadHoleRadius,
+      notepadHoleSpacing,
+      notepadHoleOffsetX,
+      notepadMarginOffset,
+      notepadMarginColor,
+      notepadMarginWidth,
+    },
+  } = layout;
+
+  const { overlays = [], overlaysAboveText = [], defs = [] } = extras;
+
   const spans = metrics
     .map((line, index) => {
       const fontWeight = line.fontWeight ?? "normal";
       const content = escapeXml(line.text ?? "");
+      const fill = line.fill ? ` fill="${line.fill}"` : "";
 
       if (index === 0) {
-        textY += line.fontSize;
-        return `<tspan x="${textStartX}" y="${textY}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
+        return `<tspan x="${textStartX}" y="${line.y}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}>${content}</tspan>`;
       }
 
-      return `<tspan x="${textStartX}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}">${content}</tspan>`;
+      return `<tspan x="${textStartX}" dy="${line.dy}" font-size="${line.fontSize}" font-weight="${fontWeight}"${fill}>${content}</tspan>`;
     })
     .join("");
 
@@ -118,7 +421,7 @@ function buildCompositeSvg(lines, options = {}) {
     const holeStartY = padding + notepadHoleRadius + 4;
     for (let y = holeStartY; y < totalHeight - padding; y += notepadHoleSpacing) {
       holeElements.push(
-        `<circle cx="${notepadHoleOffsetX}" cy="${y}" r="${notepadHoleRadius}" fill="#ffffff" stroke="#d0d0d0" stroke-width="1" />`
+        `<circle cx="${notepadHoleOffsetX}" cy="${y}" r="${notepadHoleRadius}" fill="#ffffff" stroke="#d0d0d0" stroke-width="1"/>`
       );
     }
 
@@ -137,21 +440,40 @@ function buildCompositeSvg(lines, options = {}) {
       .join("\n    ");
   }
 
+  const defsContent = [
+    `<style>
+      text { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; fill: ${textColor}; }
+    </style>`,
+    ...defs,
+  ].join("\n");
+
+  const overlayContent = overlays.length
+    ? `\n  ${overlays.join("\n  ")}`
+    : "";
+
+  const overlayAboveContent = overlaysAboveText.length
+    ? `\n  ${overlaysAboveText.join("\n  ")}`
+    : "";
+
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${estimatedWidth}" height="${totalHeight}" role="img">
   <defs>
-    <style>
-      text { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; fill: ${textColor}; }
-    </style>
+    ${defsContent}
   </defs>
   ${baseBackground}
-  ${decorativeLayers}
+  ${decorativeLayers}${overlayContent}
   <text x="${textStartX}" y="${padding}" font-size="${defaultFontSize}" xml:space="preserve">
     ${spans}
-  </text>
+  </text>${overlayAboveContent}
 </svg>`;
 
-  return { svg, width: estimatedWidth, height: totalHeight };
+  return svg;
+}
+
+function buildCompositeSvg(lines, options = {}) {
+  const layout = computeCompositeLayout(lines, options);
+  const svg = renderCompositeSvg(layout);
+  return { svg, width: layout.estimatedWidth, height: layout.totalHeight };
 }
 
 function buildTodaySvg(text) {
@@ -252,11 +574,48 @@ function buildTop5Html(top5) {
     .join("");
 }
 
+function buildCommunityQrCard() {
+  return `<div class="top-qr-card">
+    <img src="${COMMUNITY_QR_IMAGE_SRC}" alt="강밤 오픈채팅 QR 코드" loading="lazy" />
+    <p class="qr-caption">강밤 오픈채팅</p>
+    <a class="qr-link" href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>
+  </div>`;
+}
+
+function buildTopSection(top5, options = {}) {
+  const { headingTag = "h3", containerTag = "div" } = options;
+  const normalizedHeading = headingTag === "h2" ? "h2" : "h3";
+  const normalizedContainer = containerTag === "section" ? "section" : "div";
+  const hasTop5 = Array.isArray(top5) && top5.length > 0;
+  const listMarkup = hasTop5
+    ? `<ol class="top-list">${buildTop5Html(top5)}</ol>`
+    : `<p class="empty">추천 데이터가 없습니다.</p>`;
+
+  return `<${normalizedContainer} class="top-section">
+    <div class="top-card">
+      <${normalizedHeading}>추천 아가씨 TOP 5</${normalizedHeading}>
+      ${listMarkup}
+    </div>
+    ${buildCommunityQrCard()}
+  </${normalizedContainer}>`;
+}
+
 function buildStoreEntryLines(store, entries, top5) {
   const totalCount = entries.length;
 
   const lines = [
-    { text: `${store.storeName} 엔트리`, fontSize: 44, fontWeight: "700" },
+    {
+      text: COMMUNITY_CONTACT_TEXT,
+      fontSize: 40,
+      fontWeight: "800",
+      fill: "#b91c1c",
+    },
+    {
+      text: `${store.storeName} 엔트리`,
+      fontSize: 44,
+      fontWeight: "700",
+      gapBefore: 20,
+    },
     {
       text: `총 출근인원: ${totalCount}명`,
       fontSize: 28,
@@ -306,6 +665,123 @@ function buildStoreEntryLines(store, entries, top5) {
   }
 
   return lines;
+}
+
+function buildStoreImageDecorations(layout, top5 = []) {
+  const safeTop5 = Array.isArray(top5) ? top5 : [];
+  const defs = [];
+  const overlays = [];
+  const overlaysAboveText = [];
+
+  const watermarkId = "communityWatermarkPattern";
+  const watermarkText = `강밤톡방 ${COMMUNITY_CHAT_LINK}`;
+
+  defs.push(`
+    <pattern id="${watermarkId}" patternUnits="userSpaceOnUse" width="360" height="200" patternTransform="rotate(-24)">
+      <text x="0" y="60" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.1">${escapeXml(watermarkText)}</text>
+      <text x="180" y="160" font-size="42" font-weight="700" fill="#1d4ed8" opacity="0.1">${escapeXml(watermarkText)}</text>
+    </pattern>
+  `);
+
+  defs.push(`
+    <filter id="qrShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#1d4ed8" flood-opacity="0.18" />
+    </filter>
+  `);
+
+  const qrCard = buildStoreQrCard(layout, safeTop5);
+  if (qrCard) {
+    overlaysAboveText.push(qrCard);
+  }
+
+  overlays.push(
+    `<rect x="0" y="0" width="${layout.estimatedWidth}" height="${layout.totalHeight}" fill="url(#${watermarkId})" opacity="0.15" />`
+  );
+
+  return { overlays, overlaysAboveText, defs };
+}
+
+function buildStoreQrCard(layout, top5) {
+  const { metrics, normalizedLines, options } = layout;
+  const headingIndex = normalizedLines.findIndex(
+    (line) => line.text === "추천 아가씨 TOP 5"
+  );
+
+  const qrSize = 208;
+  const cardPadding = 20;
+  let cardHeight = cardPadding * 2 + qrSize + 96;
+  const cardWidth = qrSize + cardPadding * 2;
+
+  let cardY = options.padding * 1.5;
+  if (headingIndex !== -1) {
+    const headingLine = metrics[headingIndex];
+    if (headingLine) {
+      cardY = Math.max(
+        options.padding,
+        headingLine.y - headingLine.fontSize - 32
+      );
+    }
+  }
+
+  if (headingIndex !== -1) {
+    const lastIndex = Math.min(
+      metrics.length - 1,
+      headingIndex + Math.max(top5.length, 0)
+    );
+    const lastLine = metrics[lastIndex];
+    if (lastLine) {
+      const bottomCandidate =
+        lastLine.y + (lastLine.lineHeight ?? options.defaultLineHeight) + 32;
+      const desiredHeight = bottomCandidate - cardY;
+      if (desiredHeight > cardHeight) {
+        cardHeight = desiredHeight;
+      }
+    }
+  }
+
+  let topWidth = 0;
+  if (headingIndex !== -1) {
+    const sliceEnd = Math.min(
+      normalizedLines.length,
+      headingIndex + 1 + Math.max(top5.length, 0)
+    );
+    const topLines = normalizedLines.slice(headingIndex, sliceEnd);
+    topWidth = topLines.reduce((max, line) => {
+      const fontSize = line.fontSize ?? options.defaultFontSize;
+      const width = Math.ceil((line.text?.length || 0) * (fontSize * 0.64));
+      return Math.max(max, width);
+    }, 0);
+  }
+
+  const desiredX = layout.textStartX + Math.max(topWidth, 360) + 32;
+  let cardX = desiredX;
+  const fallbackX = layout.estimatedWidth - options.padding - cardWidth;
+  if (fallbackX > cardX) {
+    cardX = fallbackX;
+  }
+
+  const requiredWidth = cardX + cardWidth + options.padding;
+  if (requiredWidth > layout.estimatedWidth) {
+    layout.estimatedWidth = requiredWidth;
+  }
+
+  const requiredHeight = cardY + cardHeight + options.padding;
+  if (requiredHeight > layout.totalHeight) {
+    layout.totalHeight = requiredHeight;
+  }
+
+  const infoY = cardPadding + qrSize + 20;
+  const titleY = infoY + 26;
+  const linkY = titleY + 24;
+  const infoText = "스캔하고 강밤톡방 참여";
+
+  return `<g transform="translate(${cardX}, ${cardY})">
+    <rect width="${cardWidth}" height="${cardHeight}" rx="24" ry="24" fill="#ffffff" stroke="#1d4ed8" stroke-width="2" filter="url(#qrShadow)" />
+    <image href="${COMMUNITY_QR_IMAGE_SRC}" x="${cardPadding}" y="${cardPadding}" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid meet" />
+    <text x="${cardWidth / 2}" y="${infoY}" font-size="14" font-weight="600" text-anchor="middle" fill="#1f2937">${escapeXml(infoText)}</text>
+    <text x="${cardWidth / 2}" y="${titleY}" font-size="20" font-weight="700" text-anchor="middle" fill="#1d4ed8">${escapeXml("강밤 오픈채팅")}</text>
+    <text x="${cardWidth / 2}" y="${linkY}" font-size="13" text-anchor="middle" fill="#1f2937" lengthAdjust="spacingAndGlyphs" textLength="${cardWidth - cardPadding * 2}">${escapeXml(COMMUNITY_CHAT_LINK)}</text>
+  </g>`;
 }
 
 function buildAllStoreEntryLines(storeDataList) {
@@ -421,9 +897,10 @@ export async function renderStoreEntries(req, res, next) {
           const entryListMarkup = entries.length
             ? `<ul class="entry-list">${buildEntryRowsHtml(entries)}</ul>`
             : `<p class="empty">엔트리가 없습니다.</p>`;
-          const topListMarkup = top5.length
-            ? `<ol class="top-list">${buildTop5Html(top5)}</ol>`
-            : `<p class="empty">추천 데이터가 없습니다.</p>`;
+          const topSectionMarkup = buildTopSection(top5, {
+            headingTag: "h3",
+            containerTag: "div",
+          });
 
           return `<section class="store-section">
             <header class="store-header">
@@ -435,10 +912,7 @@ export async function renderStoreEntries(req, res, next) {
                 <h3>엔트리 목록</h3>
                 ${entryListMarkup}
               </div>
-              <div class="top-section">
-                <h3>추천 아가씨 TOP 5</h3>
-                ${topListMarkup}
-              </div>
+              ${topSectionMarkup}
             </div>
           </section>`;
         })
@@ -450,10 +924,10 @@ export async function renderStoreEntries(req, res, next) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>전체 가게 엔트리</title>
-
+    <style>${PAGE_STYLES}</style>
   </head>
   <body>
-      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">https://open.kakao.com/o/gALpMlRg</a>"</header>
+      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>"</header>
       <div class="container">
         <header class="page-header">
           <h1>전체 가게 엔트리</h1>
@@ -478,9 +952,14 @@ export async function renderStoreEntries(req, res, next) {
     const entryListMarkup = entries.length
       ? `<ul class="entry-list">${buildEntryRowsHtml(entries)}</ul>`
       : `<p class="empty">엔트리가 없습니다.</p>`;
-    const topListMarkup = top5.length
-      ? `<ol class="top-list">${buildTop5Html(top5)}</ol>`
-      : `<p class="empty">추천 데이터가 없습니다.</p>`;
+    const entrySectionMarkup = `<section class="entry-section">
+        <h2>엔트리 목록</h2>
+        ${entryListMarkup}
+      </section>`;
+    const topSectionMarkup = buildTopSection(top5, {
+      headingTag: "h2",
+      containerTag: "section",
+    });
 
     const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -488,24 +967,22 @@ export async function renderStoreEntries(req, res, next) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(store.storeName)} 엔트리</title>
-
+    <style>${PAGE_STYLES}</style>
   </head>
   <body>
-      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="https://open.kakao.com/o/gALpMlRg" target="_blank" rel="noopener noreferrer">https://open.kakao.com/o/gALpMlRg</a>"</header>
+      <header class="community-link">강남의 밤 소통방 "강밤" : "<a href="${COMMUNITY_CHAT_LINK}" target="_blank" rel="noopener noreferrer">${COMMUNITY_CHAT_LINK}</a>"</header>
       <div class="container">
         <header class="page-header">
           <h1>${escapeHtml(store.storeName)} 엔트리</h1>
           <a class="back-link" href="/entry/home">← 가게 목록으로</a>
         </header>
         <p class="summary">총 출근인원: <strong>${totalCount}</strong>명</p>
-      <section>
-        <h2>엔트리 목록</h2>
-        ${entryListMarkup}
-      </section>
-      <section>
-        <h2>추천 아가씨 TOP 5</h2>
-          ${topListMarkup}
-        </section>
+        <div class="store-section single-store">
+          <div class="store-content single">
+            ${entrySectionMarkup}
+            ${topSectionMarkup}
+          </div>
+        </div>
       </div>
     </body>
   </html>`;
@@ -539,7 +1016,9 @@ export async function renderStoreEntryImage(req, res, next) {
     if (!data) return res.status(404).send("가게를 찾을 수 없습니다.");
 
     const lines = buildStoreEntryLines(data.store, data.entries, data.top5);
-    const { svg } = buildCompositeSvg(lines, STORE_IMAGE_OPTIONS);
+    const layout = computeCompositeLayout(lines, STORE_IMAGE_OPTIONS);
+    const decorations = buildStoreImageDecorations(layout, data.top5);
+    const svg = renderCompositeSvg(layout, decorations);
 
     res.set("Cache-Control", "no-store");
     res.type("image/svg+xml").send(svg);

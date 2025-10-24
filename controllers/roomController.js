@@ -1,4 +1,5 @@
 import { pool } from "../config/db.js";
+import { getWatermarkOptions } from "../utils/watermark.js";
 
 function escapeHtml(str = "") {
   return String(str)
@@ -102,6 +103,7 @@ function buildCompositeSvg(lines, options = {}) {
     borderColor = "#dddddd",
     borderWidth = 1,
     minWidth = 480,
+    watermark = null,
   } = options;
 
   const normalizedLines = (Array.isArray(lines) ? lines : [lines]).map((line) =>
@@ -119,14 +121,14 @@ function buildCompositeSvg(lines, options = {}) {
     estimatedWidth = Math.max(estimatedWidth, padding * 2 + contentWidth);
   });
 
-    let totalHeight = padding;
+  let contentHeight = padding;
   const metrics = normalizedLines.map((line, index) => {
     const fontSize = line.fontSize ?? defaultFontSize;
     const lineHeight = line.lineHeight ?? defaultLineHeight;
     const gapBefore = index === 0 ? 0 : line.gapBefore ?? 0;
     const dy = index === 0 ? 0 : gapBefore + lineHeight;
 
-    totalHeight += index === 0 ? fontSize : dy;
+    contentHeight += index === 0 ? fontSize : dy;
 
     return {
       ...line,
@@ -136,7 +138,7 @@ function buildCompositeSvg(lines, options = {}) {
       dy,
     };
   });
-  totalHeight += padding;
+  contentHeight += padding;
 
   let textY = padding;
   const spans = metrics
@@ -153,6 +155,95 @@ function buildCompositeSvg(lines, options = {}) {
     })
     .join("");
 
+  let watermarkHeight = 0;
+  let watermarkMarkup = "";
+
+  if (watermark) {
+    const {
+      qrDataUri,
+      qrSize = 160,
+      padding: watermarkPadding = padding,
+      gap = 24,
+      phone = "",
+      phoneFontSize = defaultFontSize * 2,
+      phoneColor = textColor,
+      linkUrl = "",
+      linkLabel = "",
+      linkFontSize = defaultFontSize,
+      linkColor = textColor,
+      caption = "",
+      captionFontSize = defaultFontSize,
+      captionColor = textColor,
+      backgroundColor: watermarkBg = "#ffffff",
+      backgroundOpacity = 0.94,
+      overlayText = "",
+      overlayOpacity = 0.1,
+    } = watermark;
+
+    const escapedPhone = escapeXml(phone);
+    const escapedLabel = escapeXml(linkLabel);
+    const escapedCaption = escapeXml(caption);
+    const escapedOverlay = escapeXml(overlayText);
+
+    let textHeight = 0;
+    if (phone) textHeight += phoneFontSize;
+    if (linkLabel) textHeight += (textHeight ? gap / 2 : 0) + linkFontSize;
+    if (caption) textHeight += (textHeight ? gap / 2 : 0) + captionFontSize;
+
+    const blockHeight = Math.max(qrSize, textHeight);
+    watermarkHeight = blockHeight + watermarkPadding * 2;
+
+    const baseY = contentHeight;
+    const qrX = padding;
+    const qrY = baseY + watermarkPadding + Math.max(0, (blockHeight - qrSize) / 2);
+    const textStart = qrDataUri ? qrX + qrSize + gap : padding + gap;
+
+    let currentTextY = baseY + watermarkPadding;
+    const textElements = [];
+
+    if (phone) {
+      currentTextY += phoneFontSize;
+      textElements.push(
+        `<text x="${textStart}" y="${currentTextY}" font-size="${phoneFontSize}" font-weight="700" fill="${phoneColor}">${escapedPhone}</text>`
+      );
+    }
+
+    if (linkLabel) {
+      currentTextY += phone ? gap / 2 + linkFontSize : linkFontSize;
+      const linkTarget = escapeXml(linkUrl);
+      textElements.push(
+        `<a href="${linkTarget}" target="_blank"><text x="${textStart}" y="${currentTextY}" font-size="${linkFontSize}" font-weight="600" fill="${linkColor}">${escapedLabel}</text></a>`
+      );
+    }
+
+    if (caption) {
+      currentTextY += linkLabel ? gap / 2 + captionFontSize : captionFontSize;
+      textElements.push(
+        `<text x="${textStart}" y="${currentTextY}" font-size="${captionFontSize}" fill="${captionColor}">${escapedCaption}</text>`
+      );
+    }
+
+    const overlayLayer = overlayText
+      ? `<text x="${estimatedWidth / 2}" y="${baseY + watermarkHeight / 2}" font-size="${phoneFontSize}" fill="${phoneColor}" opacity="${overlayOpacity}" text-anchor="middle" transform="rotate(-24 ${estimatedWidth / 2} ${baseY + watermarkHeight / 2})">${escapedOverlay}</text>`
+      : "";
+
+    const qrElement = qrDataUri
+      ? `<image href="${qrDataUri}" x="${qrX}" y="${qrY}" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid meet" />`
+      : "";
+
+    const textElementMarkup = textElements.join("\n    ");
+
+    watermarkMarkup = `
+  <g class="watermark" transform="translate(0, ${baseY})">
+    <rect x="0" y="0" width="${estimatedWidth}" height="${watermarkHeight}" fill="${watermarkBg}" opacity="${backgroundOpacity}" />
+    ${overlayLayer}
+    ${qrElement}
+    ${textElementMarkup}
+  </g>`;
+  }
+
+  const totalHeight = contentHeight + watermarkHeight;
+
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${estimatedWidth}" height="${totalHeight}" role="img">
   <defs>
@@ -164,11 +255,11 @@ function buildCompositeSvg(lines, options = {}) {
   <text x="${padding}" y="${padding}" font-size="${defaultFontSize}" xml:space="preserve">
     ${spans}
   </text>
+  ${watermarkMarkup}
 </svg>`;
 
   return { svg, width: estimatedWidth, height: totalHeight };
 }
-
 const ROOM_IMAGE_OPTIONS = {
   defaultFontSize: 24,
   defaultLineHeight: 34,
@@ -415,7 +506,10 @@ export async function renderRoomImage(req, res, next) {
         return res.status(404).send("룸현황 정보가 없습니다.");
 
       const lines = buildAllRoomImageLines(rooms);
-      const { svg } = buildCompositeSvg(lines, ROOM_IMAGE_OPTIONS);
+      const { svg } = buildCompositeSvg(lines, {
+        ...ROOM_IMAGE_OPTIONS,
+        watermark: getWatermarkOptions(),
+      });
 
       res.set("Cache-Control", "no-store");
       res.type("image/svg+xml").send(svg);
@@ -426,7 +520,10 @@ export async function renderRoomImage(req, res, next) {
     if (!room) return res.status(404).send("룸현황 정보가 없습니다.");
 
     const lines = buildRoomImageLines(room);
-    const { svg } = buildCompositeSvg(lines, ROOM_IMAGE_OPTIONS);
+    const { svg } = buildCompositeSvg(lines, {
+      ...ROOM_IMAGE_OPTIONS,
+      watermark: getWatermarkOptions(),
+    });
 
     res.set("Cache-Control", "no-store");
     res.type("image/svg+xml").send(svg);

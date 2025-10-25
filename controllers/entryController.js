@@ -3,7 +3,7 @@ import { pool } from "../config/db.js";
 // 가장 위쪽 import 아래
 const COMMUNITY_CHAT_LINK = "https://open.kakao.com/o/gALpMlRg"; // 링크 표시/워터마크에 사용
 const COMMUNITY_CONTACT_TEXT = "강남 하퍼 010-8031-9616";         // 상단 굵은 빨간 문구
-const COMMUNITY_QR_IMAGE_SRC = "/images/community-qr.png";        // public 정적 경로(원하는 경로로)
+const COMMUNITY_QR_IMAGE_SRC = "public/images/community-qr.png";        // public 정적 경로(원하는 경로로)
 
 
 function escapeXml(value = "") {

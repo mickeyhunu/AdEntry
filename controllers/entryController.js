@@ -460,12 +460,12 @@ function buildStoreImageDecorations(layout, top5 = []) {
   layout.totalHeight   = Math.max(layout.totalHeight,   cardY + cardH + layout.padding);
 
   overlaysAboveText.push(`
-    <g transform="translate(${cardX}, ${cardY}) rotate(-2.5)">
+    <g transform="translate(${cardX - 100}, ${cardY - 80}) rotate(-2.5)">
       <rect width="${cardW}" height="${cardH}" rx="20" ry="20" fill="#fef3c7" stroke="#fcd34d" stroke-width="1.5"/>
       <rect x="${(cardW - Math.max(120, cardW*0.6))/2}" y="-12" width="${Math.max(120, cardW*0.6)}" height="24" rx="8" fill="#fde68a" opacity="0.9"/>
       <image href="${COMMUNITY_QR_IMAGE_SRC}" x="${pad}" y="${pad}" width="${qrSize}" height="${qrSize}" preserveAspectRatio="xMidYMid meet"/>
       <text x="${cardW/2}" y="${pad + qrSize + 20}" font-size="14" font-weight="600" text-anchor="middle" fill="#92400e">스캔하고 강밤톡방 참여</text>
-      <text x="${cardW/2}" y="${pad + qrSize + 46}" font-size="20" font-weight="700" text-anchor="middle" fill="#b45309">강밤 오픈채팅</text>
+      <text x="${cardW/2}" y="${pad + qrSize + 46}" font-size="20" font-weight="700" text-anchor="middle" fill="#b45309">강남의 밤 오픈채팅</text>
       <text x="${cardW/2}" y="${pad + qrSize + 70}" font-size="13" text-anchor="middle" fill="#7c2d12">${escapeXml(COMMUNITY_CHAT_LINK)}</text>
     </g>
   `);

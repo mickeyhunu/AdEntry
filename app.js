@@ -24,11 +24,6 @@ app.get("/", (_, res) => {
 
 app.get("/health", (_, res) => res.send("ok"));
 
-app.use("/images",
-  express.static(path.join(process.cwd(), "public/images"),
-  { fallthrough: false })
-);
-
 // (선택) 최소 에러 핸들러 — 페이지 렌더 없음
 app.use((err, req, res, next) => {
   console.error(err);

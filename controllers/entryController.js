@@ -434,8 +434,8 @@ function buildStoreImageDecorations(layout, top5 = []) {
     <text x="${x}" y="${y}" font-size="50" font-weight="700" fill="#b91c1c">${escapeXml(COMMUNITY_CONTACT_TEXT)}</text>
   `);
 
-  // QR 카드: “추천 아가씨 TOP 5” 오른쪽 여백
-  const headingIdx = layout.normalizedLines.findIndex(l => l.text === "추천 아가씨 TOP 5");
+  // QR 카드: “오늘의 인기 멤버 TOP 5” 오른쪽 여백
+  const headingIdx = layout.normalizedLines.findIndex(l => l.text === "오늘의 인기 멤버 TOP 5");
   const qrSize = 208, pad = 20;
   let cardW = qrSize + pad*2, cardH = qrSize + pad*2 + 96;
   let cardY = layout.padding * 1.5;
@@ -520,7 +520,7 @@ function buildStoreEntryLines(store, entries, top5) {
     });
 
     if (top5.length) {
-      lines.push({ text: "추천 아가씨 TOP 5", fontSize: 30, fontWeight: "700", gapBefore: 32 });
+      lines.push({ text: "오늘의 인기 멤버 TOP 5", fontSize: 30, fontWeight: "700", gapBefore: 32 });
 
       top5.forEach((entry, index) => {
         const name = entry.workerName ?? "";
@@ -582,7 +582,7 @@ function buildAllStoreEntryLines(storeDataList) {
 
       if (data.top5.length) {
         lines.push({
-          text: "추천 아가씨 TOP 5",
+          text: "오늘의 인기 멤버 TOP 5",
           fontSize: 28,
           fontWeight: "600",
           gapBefore: 20,
@@ -673,7 +673,7 @@ export async function renderStoreEntries(req, res, next) {
                 ${entryListMarkup}
               </div>
               <div class="top-section">
-                <h3>추천 아가씨 TOP 5</h3>
+                <h3>오늘의 인기 멤버 TOP 5</h3>
                 ${topListMarkup}
               </div>
             </div>
@@ -740,7 +740,7 @@ export async function renderStoreEntries(req, res, next) {
         ${entryListMarkup}
       </section>
       <section>
-        <h2>추천 아가씨 TOP 5</h2>
+        <h2>오늘의 인기 멤버 TOP 5</h2>
           ${topListMarkup}
         </section>
       </div>
